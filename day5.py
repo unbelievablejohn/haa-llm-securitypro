@@ -29,6 +29,15 @@ from datetime import datetime
 
 import requests
 
+# Windows 控制台默认编码可能是 GBK，无法输出 emoji 与部分符号，
+# 会直接抛 UnicodeEncodeError。这里在程序开头强制标准输出用 UTF-8，
+# 保证在 VS Code 直接运行也不会崩。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
 # =============================================================================
 # 配置区（都在顶部，方便修改）
 # =============================================================================
@@ -37,7 +46,12 @@ import requests
 # 智谱 GLM：   base_url = "https://open.bigmodel.cn/api/paas/v4"
 # 通义千问：   base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 # DeepSeek：   base_url = "https://api.deepseek.com/v1"
-API_KEY = os.getenv("HAA_API_KEY", "sk-d120339131004b959225e69155f45cbb")
+#
+# ⚠️ 密钥不写在源码里，从环境变量读取（否则提交到 GitHub 会泄露）：
+#     $env:HAA_API_KEY  = "你的密钥"
+#     $env:HAA_BASE_URL = "https://api.deepseek.com/v1"
+#     $env:HAA_MODEL    = "deepseek-chat"
+API_KEY = os.getenv("HAA_API_KEY", "")
 BASE_URL = os.getenv("HAA_BASE_URL", "https://api.deepseek.com/v1")
 MODEL_NAME = os.getenv("HAA_MODEL", "deepseek-chat")
 
@@ -291,6 +305,16 @@ def main():
     print(f"模型：{MODEL_NAME} | 置信阈值：{CONFIDENCE_THRESHOLD} | 日志：{LOG_FILE}")
     print("=" * 70)
 
+    # 密钥未配置时给出明确指引，而不是让它去撞 401
+    if not API_KEY:
+        print("\n❌ 未检测到 API 密钥，无法运行。\n")
+        print("请先设置环境变量（Windows PowerShell）：")
+        print('    $env:HAA_API_KEY  = "你的密钥"')
+        print('    $env:HAA_BASE_URL = "https://api.deepseek.com/v1"   # 可选，默认 DeepSeek')
+        print('    $env:HAA_MODEL    = "deepseek-chat"                  # 可选')
+        print("\n可参考项目根目录的 .env.example。")
+        return 1
+
     # 允许命令行传一个问题；不传就跑内置两个测试案例
     if len(sys.argv) > 1:
         questions = [" ".join(sys.argv[1:])]
@@ -307,4 +331,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
