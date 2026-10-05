@@ -185,17 +185,17 @@ def judge_uncertainty(question):
     ]
 
     raw = ""
+    last_error = ""
     for attempt in range(MAX_RETRY + 1):
         try:
             raw = chat(messages, temperature=TEMPERATURE)
         except Exception as exc:  # 网络/鉴权等异常
-            return {
-                "ok": False,
-                "confident": False,
-                "confidence": 0,
-                "reason": f"调用模型失败：{exc}",
-                "raw": "",
-            }
+            # 网络抖动是暂时的，不应直接判为"信息不足"。
+            # 早期版本在此直接 return，导致一次网络故障被误统计成模型判断失败
+            # （实测：21 条样本里 15 条因瞬时超时被记为 error）。
+            # 现改为重试，重试用尽仍失败才返回失败状态。
+            last_error = str(exc)
+            continue
 
         obj = parse_json_loose(raw)
         if isinstance(obj, dict) and "confidence" in obj:
@@ -212,6 +212,16 @@ def judge_uncertainty(question):
                 "reason": str(obj.get("reason", "")).strip(),
                 "raw": raw,
             }
+
+    # 网络重试用尽：属于系统故障，与"模型认为信息不足"性质不同，必须区分
+    if last_error:
+        return {
+            "ok": False,
+            "confident": False,
+            "confidence": 0,
+            "reason": f"调用模型失败（已重试 {MAX_RETRY} 次）：{last_error}",
+            "raw": raw,
+        }
 
     # 重试用尽仍解析失败：保守判定为信息不足
     return {
