@@ -171,7 +171,12 @@ def parse_json_loose(text):
 def judge_uncertainty(question):
     """
     第一步：让模型仅评估自己是否具备足够信息，返回 dict：
-        {"confident": bool, "confidence": int, "reason": str, "raw": str}
+        {"ok": bool, "confident": bool, "confidence": int, "reason": str, "raw": str}
+
+    ok 的含义：判断过程本身是否正常完成。
+        ok=False 表示调用失败或返回了非法 JSON —— 属于**系统故障**，
+        而非"模型认为信息不足"。两者都会导致拒答，但性质完全不同，
+        评测与日志需要区分（否则会把网络抖动统计成模型的判断倾向）。
     解析失败时按"不确定"处理（保守拒答），绝不猜测。
     """
     messages = [
@@ -185,6 +190,7 @@ def judge_uncertainty(question):
             raw = chat(messages, temperature=TEMPERATURE)
         except Exception as exc:  # 网络/鉴权等异常
             return {
+                "ok": False,
                 "confident": False,
                 "confidence": 0,
                 "reason": f"调用模型失败：{exc}",
@@ -200,6 +206,7 @@ def judge_uncertainty(question):
             conf = max(0, min(100, conf))
             # 以分数为准，强制 confident 与阈值自洽，避免模型自相矛盾
             return {
+                "ok": True,
                 "confident": conf >= CONFIDENCE_THRESHOLD,
                 "confidence": conf,
                 "reason": str(obj.get("reason", "")).strip(),
@@ -208,6 +215,7 @@ def judge_uncertainty(question):
 
     # 重试用尽仍解析失败：保守判定为信息不足
     return {
+        "ok": False,
         "confident": False,
         "confidence": 0,
         "reason": "模型未按要求返回合法 JSON，保守判定为信息不足",
