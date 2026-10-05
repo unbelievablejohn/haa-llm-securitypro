@@ -149,6 +149,10 @@ def evaluate_item(item):
         if item["expect"] == REFUSE:
             record["correct"] = False
             record["confident_wrong"] = True
+            # 注意：这里的"错误"依据的是**数据集标注**（该题本应拒答），
+            # 尚未检查答案内容。所以标记为待人工核对级别最高 —— 需要人确认
+            # 它究竟编了什么。
+            record["needs_manual_check"] = True
         else:
             # 应当作答 —— 但**作答不等于答对**。
             # 只有 AUTO_CHECK_IDS 里的精确数值题才自动核对；其余标 None 交人工，
