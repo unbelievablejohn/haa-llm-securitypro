@@ -95,6 +95,30 @@ $env:QWEN_API_KEY     = "..."
 .venv\Scripts\python.exe day5_verify.py
 ```
 
+## 验证过程（`experiments/`）
+
+最终版是结论，`experiments/` 里是**得出结论的过程**——每个脚本都曾发现一个真实缺陷，因此保留而非删除。
+
+验证分三段推进：
+
+| 阶段 | 脚本 | 它发现了什么 |
+|---|---|---|
+| ① 探测单模型版 | `probe_uncertainty.py` | 用 7 个人工核实过真相的案例打 `day5.py`。覆盖"该拒没拒"与"该答没答"两类风险，发现：**判断阶段可能给出高置信分，但 `reason` 里含错误事实**（实测 Ringel–Youngs 定理年份误写为 1967，真值 1968）——高置信掩盖了错误内容 |
+| ② 交叉评估 | `day5_cross.py` | 三个模型轮流当答题者、其余两个当裁判。**暴露了硬伤**：`847 × 9639` 时两个错答案被 4 次裁判全给 10/10。根因是裁判不重新计算、且每人只看到一份答案 |
+| ③ 修复验证 | `day5_verify.py` | 针对 ② 的两个根因做结构性改动并复测通过（详见上一节） |
+
+`experiments/day5_cross_log.txt` 是阶段 ② 的**原始失败记录**，故意保留未经修饰——它记录了"多模型互评给错误答案打满分"这一事实，是 ③ 存在的理由。
+
+```powershell
+# 复跑阶段①（需 HAA_API_KEY；会真实调用 API）
+.venv\Scripts\python.exe experiments\probe_uncertainty.py
+
+# 复跑阶段②（需三个密钥）
+.venv\Scripts\python.exe experiments\day5_cross.py
+```
+
+> 注：`experiments/` 下的两个脚本通过 `from day5 import ...` 复用主脚本的函数，在其原始位置（项目根目录）运行时导入才生效；若从 `experiments/` 内直接运行，需先把根目录加入 `sys.path` 或把文件移回根目录。
+
 ## 迭代过程
 
 | 天 | 文件 | 主题 | 关键跃迁 |
