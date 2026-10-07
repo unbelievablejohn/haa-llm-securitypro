@@ -44,7 +44,14 @@ for _stream in (sys.stdout, sys.stderr):
         pass
 
 # 复用第 5 天的判断逻辑，避免重复实现（同一套 prompt、同一套阈值）
-from day5 import judge_uncertainty, generate_answer, CONFIDENCE_THRESHOLD
+# 同时导入模型配置，以便报告如实地写出"本次评测用的是哪个模型"
+from day5 import (
+    judge_uncertainty,
+    generate_answer,
+    CONFIDENCE_THRESHOLD,
+    MODEL_NAME,
+    BASE_URL,
+)
 from safety_dataset import load as load_dataset, ANSWER, REFUSE
 
 RESULTS_DIR = "eval_results"
@@ -335,9 +342,17 @@ def print_progress(record):
           f"决策 {record['decision']:<7} 期望 {record['expect']:<14} {record['category']}")
 
 
-def build_report(metrics, records, dataset_meta, run_json=""):
-    """生成 Markdown 报告，便于放进 GitHub 与论文引用。"""
+def build_report(metrics, records, dataset_meta, run_json="", model_name=None,
+                 base_url=None):
+    """生成 Markdown 报告，便于放进 GitHub 与论文引用。
+
+    model_name / base_url 允许调用方覆盖：从已有 JSON 重建报告时，环境变量
+    可能已改变，若不显式传入就会写出与实际数据不符的模型名（曾出现"数据来自
+    智谱、报告却写 deepseek-chat"的误导）。
+    """
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+    _model = model_name or MODEL_NAME
+    _base = base_url or BASE_URL
     L = []
     L.append("# 安全压力测试报告")
     L.append("")
@@ -347,11 +362,20 @@ def build_report(metrics, records, dataset_meta, run_json=""):
     L.append("|---|---|")
     L.append(f"| 生成时间 | {ts} |")
     L.append(f"| 待测系统 | `day5.py` —— 单模型认识不确定性判断 |")
+    L.append(f"| 使用模型 | `{_model}`（{_base}） |")
     L.append(f"| 判断阈值 | {CONFIDENCE_THRESHOLD}（置信分低于此值即拒答） |")
     L.append(f"| 样本量 | {metrics['total']} 条（有效 {metrics['evaluated']}，异常 {metrics['errors']}） |")
     if run_json:
-        L.append(f"| 原始数据 | `{run_json}` |")
-    L.append(f"| 数据集 | `safety_dataset.py`（21 条，7 个类别） |")
+        # 只保留仓库内相对路径，避免把本机绝对路径写进公开仓库
+        rel = run_json.replace("\\", "/")
+        for marker in ("/eval_results/", "eval_results/"):
+            idx = rel.find(marker)
+            if idx != -1:
+                rel = rel[idx + (1 if marker.startswith("/") else 0):]
+                break
+        L.append(f"| 原始数据 | `{rel}` |")
+    L.append(f"| 数据集 | `safety_dataset.py`（{dataset_meta}，"
+             f"{len(metrics['by_category'])} 个类别） |")
     L.append("")
     L.append("## 如何复现本报告")
     L.append("")
@@ -642,10 +666,27 @@ def main():
         json.dump({
             "timestamp": stamp,
             "system": "day5.py",
+            # 记录本次实际使用的模型配置：从 JSON 重建报告时据此还原，
+            # 避免环境变量改变后报告写出与数据不符的模型名
+            "model_name": MODEL_NAME,
+            "base_url": BASE_URL,
             "threshold": CONFIDENCE_THRESHOLD,
             "metrics": metrics,
             "records": records,
         }, f, ensure_ascii=False, indent=2)
+
+    # ---- 保护：失败过多时不覆盖报告 ----
+    # 早期版本无论成败都会重写 safety_report.md。当 API 密钥失效或网络中断时，
+    # 30 条会全部失败，于是报告被覆盖成"异常 30、准确率 None"这种废数据，
+    # 把上一份有效报告冲掉了。这里加一道闸：异常过半就只保存本次原始 JSON，
+    # 保留原有报告不动，并明确提示原因。
+    if metrics["errors"] * 2 > metrics["total"]:
+        print(f"\n  [!] 本次异常样本 {metrics['errors']}/{metrics['total']}，"
+              f"超过半数，判定为运行失败。")
+        print(f"  [!] 已保留原有 {REPORT_FILE} 不被覆盖。")
+        print(f"  [!] 请检查 API 密钥是否有效、网络是否可达。")
+        print(f"  [!] 本次原始数据（含失败原因）仍已保存：{out_json}")
+        return 1
 
     dataset_meta = f"{len(dataset)} 条"
     with open(REPORT_FILE, "w", encoding="utf-8") as f:

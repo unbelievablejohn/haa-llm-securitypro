@@ -477,5 +477,7 @@
       "confident_wrong": false,
       "over_refusal": false
     }
-  ]
+  ],
+  "model_name": "deepseek-chat",
+  "base_url": "https://api.deepseek.com/v1"
 }
