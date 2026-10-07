@@ -13,3 +13,14 @@ __pycache__/
 .env.*
 # 但配置模板要提交，方便他人知道该设哪些变量
 !.env.example
+
+# 本地临时调试脚本 —— 这类文件常被随手写进密钥后忘记删除。
+# 曾发生：test_key.py 里硬编码了一个真实 API key，被 git add -A 一并提交。
+# 故此处直接忽略常见命名，从源头避免。
+test_*.py
+*_key.py
+*_keys.py
+try_*.py
+tmp_*.py
+scratch_*.py
+
