@@ -101,12 +101,53 @@ UNCERTAINTY_SYSTEM_PROMPT = """你是一个"知识边界评估器"。你的唯�
 如果你察觉自己正因为上述方式而倾向于给高分，必须**主动降低**置信分，
 而不是提高。宁可判为信息不足，也不要被措辞推动。
 
+【不确定的原因分类 —— reason_type】
+只知道"我不确定"是不够的 —— 不确定有几种性质完全不同的原因，处理方式也不同。
+你必须额外判断原因属于下列哪一类，且只能选一个：
+
+- "knowable"        你确实掌握该知识，可以作答（此时置信分应当较高）
+- "out_of_knowledge" 内容可能存在，但超出你的知识范围（例如你的训练截止之后发生的事）
+- "nonexistent"     该内容本身不存在或疑似虚构（例如编造的理论名、不存在的论文）
+- "unverifiable"    无法核实（例如他人的私人信息、未公开的内部数据）
+- "realtime"        需要实时数据才能回答（例如当前金价、今天的天气）
+- "ambiguous"       问题本身含义不清，无法确定在问什么
+
+判定要点：
+- 若你不确定某论文/理论是否存在，应选 "nonexistent"，而不是 "unverifiable" ——
+  两者的区别在于：前者是你怀疑它根本不存在，后者是它可能存在但你无权知道。
+- 若问题是关于你的知识截止日期之后的事件，选 "out_of_knowledge"。
+- 若能作答，必须选 "knowable"。
+
 严格要求：
 - 只输出一个 JSON 对象，不要输出任何解释性文字、不要用 Markdown 代码块包裹。
 - JSON 格式固定为：
-  {"confident": true 或 false, "confidence": 0~100 的整数, "reason": "一句话简短理由"}
+  {"confident": true 或 false, "confidence": 0~100 的整数,
+   "reason_type": "上述六类之一", "reason": "一句话简短理由"}
 - confident 与 confidence 必须自洽：confidence >= 70 时 confident 为 true，否则为 false。
+- reason_type 为 "knowable" 时 confidence 通常应 >= 70；若不是，说明你其实并不掌握，
+  应改判为其他类型。
 """
+
+
+# 不确定原因类型（与提示词中的枚举一致，供程序校验与分支使用）
+REASON_TYPES = (
+    "knowable",          # 掌握该知识，可作答
+    "out_of_knowledge",  # 超出知识范围（如训练截止之后）
+    "nonexistent",       # 内容不存在或疑似虚构
+    "unverifiable",      # 无法核实（他人私密信息等）
+    "realtime",          # 需要实时数据
+    "ambiguous",         # 问题含义不清
+)
+
+# 每类原因对应的拒答补充说明 —— 让用户知道"为什么拒答""怎样才能帮到你"
+REASON_ADVICE = {
+    "knowable": "",
+    "out_of_knowledge": "该问题的答案可能存在于我的知识范围之外（例如发生在我的知识截止日期之后），我无法凭记忆确认。",
+    "nonexistent": "我怀疑该内容本身并不存在，或属于虚构、拼接而成的名称。若它确实存在，请提供出处，我可以再尝试。",
+    "unverifiable": "该信息属于无法核实的范畴（例如他人的私密信息或未公开数据），我没有任何可靠途径获知。",
+    "realtime": "该问题需要实时数据才能回答，而我不具备查询实时信息的能力。建议查阅权威的实时数据源。",
+    "ambiguous": "问题本身的含义不够明确，我无法确定你具体想问什么。若能补充背景或明确所指，我可以再尝试。",
+}
 
 # ② 正式回答阶段的 system prompt
 #    只有在置信分达标后才会用到。
@@ -124,11 +165,22 @@ REFUSAL_TEMPLATE = (
     "【回答】我无法可靠地回答这个问题，因此选择拒答。\n\n"
     "【判断】经过自我知识评估，我对该问题缺乏足够、可靠的信息"
     "（置信度 {confidence}/100，阈值 {threshold}）。\n"
+    "不确定的原因类别：{reason_type_cn}（{reason_type}）\n"
     "判断依据：{reason}\n\n"
-    "【说明】为避免给出编造或误导性的内容，我不生成答案。\n"
-    "注意：拒答只代表我无法确认，不代表该问题本身不存在或不可能。\n"
+    "【说明】{advice}\n"
+    "为避免给出编造或误导性的内容，我不生成答案。\n"
     "如果你能提供更具体的背景或可靠资料，我可以再尝试。"
 )
+
+# reason_type 的中文名，用于拒答信息中的人类可读展示
+REASON_TYPE_CN = {
+    "knowable": "我掌握该知识",
+    "out_of_knowledge": "超出我的知识范围",
+    "nonexistent": "该内容疑似不存在",
+    "unverifiable": "无法核实",
+    "realtime": "需要实时数据",
+    "ambiguous": "问题含义不清",
+}
 
 
 # =============================================================================
@@ -186,12 +238,20 @@ def parse_json_loose(text):
 def judge_uncertainty(question):
     """
     第一步：让模型仅评估自己是否具备足够信息，返回 dict：
-        {"ok": bool, "confident": bool, "confidence": int, "reason": str, "raw": str}
+        {"ok": bool, "confident": bool, "confidence": int,
+         "reason_type": str, "reason": str, "raw": str}
 
     ok 的含义：判断过程本身是否正常完成。
         ok=False 表示调用失败或返回了非法 JSON —— 属于**系统故障**，
         而非"模型认为信息不足"。两者都会导致拒答，但性质完全不同，
         评测与日志需要区分（否则会把网络抖动统计成模型的判断倾向）。
+
+    reason_type 的含义：不确定的**原因类别**（见 REASON_TYPES）。
+        只知道"我不确定"没有用 —— 原因不同，处理方式也不同：
+        超出知识范围或需要实时数据的，将来可以路由到联网检索；
+        内容不存在的可以直接判定；含义不清的应当反问用户。
+        解析失败或模型给出非法值时，按 confidence 推断一个合理的默认值。
+
     解析失败时按"不确定"处理（保守拒答），绝不猜测。
     """
     messages = [
@@ -219,11 +279,33 @@ def judge_uncertainty(question):
             except (TypeError, ValueError):
                 conf = 0
             conf = max(0, min(100, conf))
-            # 以分数为准，强制 confident 与阈值自洽，避免模型自相矛盾
+
+            # ---- 校验 reason_type ----
+            rt = str(obj.get("reason_type", "")).strip().lower()
+            if rt not in REASON_TYPES:
+                # 模型未给出或给了非法值：按置信分推断一个合理的默认类别，
+                # 并标记为"推断值"，避免把猜测当成模型的真实判断。
+                rt = "knowable" if conf >= CONFIDENCE_THRESHOLD else "out_of_knowledge"
+                rt_inferred = True
+            else:
+                rt_inferred = False
+
+            confident = conf >= CONFIDENCE_THRESHOLD
+
+            # ---- 一致性修正 ----
+            # 若判为"掌握知识"却被阈值判为不确定（或反之），以分数与阈值的关系为准，
+            # 因为分数的量化信息比类别标签更细。但此时不算推断，只做类别对齐。
+            if rt == "knowable" and not confident:
+                rt = "out_of_knowledge"
+            elif rt != "knowable" and confident:
+                rt = "knowable"
+
             return {
                 "ok": True,
-                "confident": conf >= CONFIDENCE_THRESHOLD,
+                "confident": confident,
                 "confidence": conf,
+                "reason_type": rt,
+                "reason_type_inferred": rt_inferred,
                 "reason": str(obj.get("reason", "")).strip(),
                 "raw": raw,
             }
@@ -234,6 +316,8 @@ def judge_uncertainty(question):
             "ok": False,
             "confident": False,
             "confidence": 0,
+            "reason_type": "out_of_knowledge",
+            "reason_type_inferred": True,
             "reason": f"调用模型失败（已重试 {MAX_RETRY} 次）：{last_error}",
             "raw": raw,
         }
@@ -243,6 +327,8 @@ def judge_uncertainty(question):
         "ok": False,
         "confident": False,
         "confidence": 0,
+        "reason_type": "out_of_knowledge",
+        "reason_type_inferred": True,
         "reason": "模型未按要求返回合法 JSON，保守判定为信息不足",
         "raw": raw,
     }
@@ -266,8 +352,10 @@ def generate_answer(question):
 # =============================================================================
 
 def write_log(question, judge, decision, final_output):
-    """记录：用户问题、不确定性判断结果、置信分、最终输出。"""
+    """记录：用户问题、不确定性判断结果、置信分、不确定原因类别、最终输出。"""
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    rt = judge.get("reason_type", "?")
+    inferred = "（程序推断）" if judge.get("reason_type_inferred") else ""
     lines = [
         "=" * 70,
         f"时间：{ts}",
@@ -275,6 +363,7 @@ def write_log(question, judge, decision, final_output):
         f"用户问题：{question}",
         f"不确定性判断：confident={judge['confident']}，"
         f"confidence={judge['confidence']}/100，阈值={CONFIDENCE_THRESHOLD}",
+        f"不确定原因类别：{rt}（{REASON_TYPE_CN.get(rt, rt)}）{inferred}",
         f"判断理由：{judge['reason']}",
         f"系统决策：{decision}",
         f"最终输出：{final_output}",
@@ -303,10 +392,14 @@ def answer_question(question):
     # —— 分支：不达标直接拒答，不生成答案 ——
     if not judge["confident"]:
         decision = "拒答（置信分不足，未生成答案）"
+        rt = judge.get("reason_type", "out_of_knowledge")
         output = REFUSAL_TEMPLATE.format(
             confidence=judge["confidence"],
             threshold=CONFIDENCE_THRESHOLD,
+            reason_type=rt,
+            reason_type_cn=REASON_TYPE_CN.get(rt, rt),
             reason=judge["reason"],
+            advice=REASON_ADVICE.get(rt, REASON_ADVICE["out_of_knowledge"]),
         )
         print(f"⛔ {decision}")
         print(f"📤 最终输出：\n{output}")
