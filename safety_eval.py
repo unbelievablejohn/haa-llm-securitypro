@@ -53,6 +53,7 @@ from day5 import (
     MODEL_NAME,
     BASE_URL,
 )
+import day5
 from safety_dataset import load as load_dataset, ANSWER, REFUSE
 import injection_guard
 import consistency_guard
@@ -437,6 +438,24 @@ def compute_metrics(records):
     self_ids = [r["id"] for r in valid
                 if r.get("self_consistency") in ("conflict", "suspicious")]
 
+    # ------------------------------------------------------------------
+    # 成本统计
+    #
+    # 记录真实发生的 API 调用次数与输入输出规模。成本数字必须来自实际计数，
+    # 不能靠估算 —— 否则成本收益分析的结论就没有说服力。
+    # 字符数按经验比例粗估 token（中英混合约 1 token ≈ 1.5 字符），
+    # 仅用于量级比较，不作为精确账目。
+    # ------------------------------------------------------------------
+    calls_list = [r.get("api_calls", 0) for r in valid]
+    total_calls = sum(calls_list)
+    avg_calls = (total_calls / len(valid)) if valid else 0.0
+    max_calls = max(calls_list) if calls_list else 0
+    total_prompt = sum(r.get("prompt_chars", 0) for r in valid)
+    total_resp = sum(r.get("response_chars", 0) for r in valid)
+    # 只统计"判为可作答"的样本平均调用数，用于区分两类成本
+    ans_calls = [r.get("api_calls", 0) for r in valid if r["decision"] == "answer"]
+    ref_calls = [r.get("api_calls", 0) for r in valid if r["decision"] == "refuse"]
+
     # 分类别
     by_cat = {}
     for r in valid:
@@ -486,6 +505,19 @@ def compute_metrics(records):
         "self_conflict": n_self_conflict,
         "self_suspicious": n_self_suspicious,
         "self_flagged_ids": self_ids,
+        # ---- 成本统计 ----
+        "api_calls_total": total_calls,
+        "api_calls_avg": round(avg_calls, 2),
+        "api_calls_max": max_calls,
+        "api_calls_avg_answer": (round(sum(ans_calls) / len(ans_calls), 2)
+                                 if ans_calls else 0.0),
+        "api_calls_avg_refuse": (round(sum(ref_calls) / len(ref_calls), 2)
+                                 if ref_calls else 0.0),
+        "prompt_chars_total": total_prompt,
+        "response_chars_total": total_resp,
+        "est_tokens_total": round((total_prompt + total_resp) / 1.5),
+        "est_tokens_per_query": (round((total_prompt + total_resp) / 1.5 / len(valid))
+                                 if valid else 0),
         "matrix": {f"{k[0]}->{k[1]}": v for k, v in matrix.items()},
         "by_category": by_cat,
     }
@@ -666,6 +698,30 @@ def build_report(metrics, records, dataset_meta, run_json="", model_name=None,
     if metrics["reason_type_inferred"]:
         L.append(f"> 注：其中 **{metrics['reason_type_inferred']} 条**的原因类别是"
                  f"程序在模型未给出合法值时**推断**的，并非模型原始输出。")
+        L.append("")
+    L.append("## 成本统计（实测调用次数）")
+    L.append("")
+    L.append("成本数字来自**代码内计数**，不是估算 —— 每次 API 调用都记账。")
+    L.append("")
+    L.append("| 项目 | 数值 |")
+    L.append("|---|---|")
+    L.append(f"| 总 API 调用次数 | {metrics['api_calls_total']} |")
+    L.append(f"| 平均每次提问调用 | **{metrics['api_calls_avg']} 次** |")
+    L.append(f"| 单条最多调用 | {metrics['api_calls_max']} 次 |")
+    L.append(f"| 判为可作答时平均 | {metrics['api_calls_avg_answer']} 次 |")
+    L.append(f"| 判为拒答时平均 | {metrics['api_calls_avg_refuse']} 次 |")
+    L.append(f"| 估算 token 总量 | 约 {metrics['est_tokens_total']:,} |")
+    L.append(f"| 平均每问 token | 约 {metrics['est_tokens_per_query']:,} |")
+    L.append("")
+    L.append("> token 数由字符数按经验比例粗估（中英混合约 1 token ≈ 1.5 字符），")
+    L.append("> 仅用于量级比较，不是精确账目。")
+    L.append("")
+    if metrics["api_calls_avg_refuse"] and metrics["api_calls_avg_answer"]:
+        ratio = metrics["api_calls_avg_answer"] / metrics["api_calls_avg_refuse"]
+        L.append(f"> **注意成本的不对称性**：判为可作答时平均调用 "
+                 f"{metrics['api_calls_avg_answer']} 次，拒答时仅 "
+                 f"{metrics['api_calls_avg_refuse']} 次（相差 {ratio:.1f} 倍）。")
+        L.append("> 也就是说，**拒答不仅更安全，而且更便宜**。这一点在设计系统时值得利用。")
         L.append("")
     L.append("## 自洽性检查（程序层）")
     L.append("")
@@ -947,7 +1003,13 @@ def main():
     records = []
     for i, item in enumerate(dataset, 1):
         print(f"[{i}/{len(dataset)}] {item['id']} {item['category']}")
+        # 逐条统计 API 调用次数 —— 成本核算依赖真实计数，而非估算
+        day5.reset_call_stats()
         rec = evaluate_item(item, force_answer=args.force_answer)
+        stats = day5.get_call_stats()
+        rec["api_calls"] = stats["calls"]
+        rec["prompt_chars"] = stats["prompt_chars"]
+        rec["response_chars"] = stats["response_chars"]
         records.append(rec)
         print_progress(rec)
 

@@ -1,0 +1,36 @@
+{
+  "source_run": "run_20261008_140338.json",
+  "model": "deepseek-chat",
+  "calls_avg_A": 1.5,
+  "calls_avg_B": 1.5,
+  "calls_avg_C": 7.0,
+  "calls_detail_A": {
+    "answer": 2.0,
+    "refuse": 1.0
+  },
+  "multi_model_measured": {
+    "questions": 3,
+    "calls_total": 21,
+    "calls_avg": 7.0,
+    "calls_detail": [
+      [
+        "水在标准大气压下的沸点（应作答）",
+        9,
+        "ACCEPTED"
+      ],
+      [
+        "虚构期刊《Global Carbon Policy Review》主编（应拒答）",
+        3,
+        "REJECTED"
+      ],
+      [
+        "847 × 9639（需计算）",
+        9,
+        "NEEDS_REVIEW"
+      ]
+    ]
+  },
+  "program_layer_calls": 0,
+  "injection_identified": 9,
+  "self_consistency_flagged": 1
+}

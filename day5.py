@@ -187,6 +187,24 @@ REASON_TYPE_CN = {
 # 底层：调用 OpenAI 兼容接口
 # =============================================================================
 
+# ---------------------------------------------------------------------------
+# 调用计数器（成本核算用）
+#
+# 为什么要在代码里计数，而不是靠估算：成本收益分析的说服力完全取决于成本
+# 数字是否可信。人工估算容易漏掉重试、漏掉"酌情多调一次"的分支；
+# 让代码自己记，得到的是真实发生的调用次数。
+# ---------------------------------------------------------------------------
+CALL_STATS = {"calls": 0, "prompt_chars": 0, "response_chars": 0}
+
+
+def reset_call_stats():
+    CALL_STATS.update(calls=0, prompt_chars=0, response_chars=0)
+
+
+def get_call_stats():
+    return dict(CALL_STATS)
+
+
 def chat(messages, temperature):
     """调用 OpenAI 兼容的 /chat/completions 接口，返回模型输出的纯文本。"""
     url = BASE_URL.rstrip("/") + "/chat/completions"
@@ -203,7 +221,14 @@ def chat(messages, temperature):
     resp = requests.post(url, headers=headers, json=payload, timeout=TIMEOUT)
     resp.raise_for_status()
     data = resp.json()
-    return data["choices"][0]["message"]["content"]
+    content = data["choices"][0]["message"]["content"]
+
+    # 记录本次调用：次数 + 输入输出规模（字符数，用于粗估 token）
+    CALL_STATS["calls"] += 1
+    CALL_STATS["prompt_chars"] += sum(len(str(m.get("content", "")))
+                                      for m in messages)
+    CALL_STATS["response_chars"] += len(str(content or ""))
+    return content
 
 
 def parse_json_loose(text):

@@ -175,6 +175,22 @@ JUDGE_SYSTEM_PROMPT = """你是一位严格的答案质量裁判。用户会给�
 # 底层调用与解析
 # =============================================================================
 
+# ---------------------------------------------------------------------------
+# 调用计数器（成本核算用）
+#
+# 多模型互评是项目中成本最高的配置，成本收益对比必须基于真实计数。
+# ---------------------------------------------------------------------------
+CALL_STATS = {"calls": 0, "prompt_chars": 0, "response_chars": 0}
+
+
+def reset_call_stats():
+    CALL_STATS.update(calls=0, prompt_chars=0, response_chars=0)
+
+
+def get_call_stats():
+    return dict(CALL_STATS)
+
+
 def chat(spec, messages, temperature):
     url = spec["url"].rstrip("/") + "/chat/completions"
     resp = requests.post(
@@ -192,7 +208,13 @@ def chat(spec, messages, temperature):
         timeout=TIMEOUT,
     )
     resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"]
+    content = resp.json()["choices"][0]["message"]["content"]
+
+    CALL_STATS["calls"] += 1
+    CALL_STATS["prompt_chars"] += sum(len(str(m.get("content", "")))
+                                      for m in messages)
+    CALL_STATS["response_chars"] += len(str(content or ""))
+    return content
 
 
 def parse_json_loose(text):

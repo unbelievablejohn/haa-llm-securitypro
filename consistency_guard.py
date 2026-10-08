@@ -40,6 +40,80 @@ import re
 
 YEAR_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})(?!\d)")
 NUM_RE = re.compile(r"\d[\d,，]*(?:\.\d+)?")
+# 机构名的译名归一化
+#
+# 为什么需要：实体比对是**字面**比较，处理不了同义词与不同译名。
+# 实测误报：某条样本的 reason 写「法国科学院」、answer 写「法兰西科学院」，
+# 指的是同一个机构（Académie des sciences），却被判为"机构不一致"。
+#
+# 这里只做**系统性的国名/译名变体**归一化（法国/法兰西、德国/德意志等），
+# 因为这类变体可枚举、规则清晰。更广泛的别名（如"北大"与"北京大学"）
+# 无法靠规则穷尽，只能靠词典，本模块不假装能解决 ——
+# 因此机构比对只判 suspicious（值得看一眼），绝不判 conflict。
+ALIAS_GROUPS = [
+    ("法国", "法兰西"),
+    ("德国", "德意志"),
+    ("英国", "大不列颠", "英吉利"),
+    ("美国", "美利坚"),
+    ("俄国", "俄罗斯"),
+    ("荷兰", "尼德兰"),
+    ("意大利", "义大利"),
+    ("西班牙", "西班牙"),
+    ("韩国", "大韩"),
+    ("朝鲜", "北朝鲜"),
+    ("澳大利亚", "澳洲"),
+    ("新西兰", "纽西兰"),
+]
+
+
+# 机构名左侧的虚词修剪
+#
+# 中文没有词边界，正则的 [\u4e00-\u9fff]{2,12} 是贪婪的，会把前文虚词一起
+# 吞进来。实测："米的定义在 1791 年由法国科学院确定" 被抽成 "年由法国科学院"，
+# 于是同一个机构（法国科学院）在理由与答案中变成了两个不同字符串。
+# 这里剪掉开头的常见虚词与时间词。
+ORG_LEAD_TRIM = re.compile(
+    r"^(?:[在由于的了和与及是被为从向对第该其此本]|年|月|日|年代|世纪)+")
+
+
+def _org_clean(name):
+    """修剪机构名左侧粘连的虚词，并做译名归一化。"""
+    s = ORG_LEAD_TRIM.sub("", str(name))
+    return _alias_key(s)
+
+
+def _overlap(a_set, b_set):
+    """
+    判断两个实体集合是否有**实质重叠**。
+
+    判据比"集合相等"宽松：只要存在一对实体 x、y，满足 x == y、
+    或其中一个是另一个的子串，就认为重叠。
+
+    为什么必须这样：中文实体没有明确边界，抽取结果常带前后粘连
+    （如 "年由法国科学院" 与 "法国科学院"），用严格集合比较会把
+    同一实体判成不同实体，产生误报。子串匹配能容忍这类粘连。
+    """
+    for x in a_set:
+        for y in b_set:
+            if x == y or x in y or y in x:
+                return True
+    return False
+
+
+def _alias_key(name):
+    """
+    把机构名归一到"规范形式"：组内任一写法都映射到该组的第一个写法。
+    例如 法国科学院 / 法兰西科学院 都归一到 法国科学院。
+    """
+    s = str(name)
+    for group in ALIAS_GROUPS:
+        canon = group[0]
+        for variant in group:
+            if variant in s:
+                return s.replace(variant, canon)
+    return s
+
+
 # 中文书名号或引号包裹的标题
 TITLE_RE = re.compile(r"《([^》]{2,80})》|「([^」]{2,80})」")
 # 机构名：以常见后缀结尾的连续中文串
@@ -90,9 +164,13 @@ def extract_facts(text, exclude_numbers=None):
         if title:
             titles.add(title)
 
-    orgs = set(ORG_RE.findall(t)) if hasattr(ORG_RE, "findall") else set()
-    orgs = set(ORG_RE.findall(t)) if False else set(
-        m.group(0) for m in ORG_RE.finditer(t))
+    orgs = set()
+    for m in ORG_RE.finditer(t):
+        # 先剪掉左侧粘连的虚词，再做译名归一化
+        # （法国科学院 / 法兰西科学院 视为同一机构）
+        cleaned = _org_clean(m.group(0))
+        if cleaned:
+            orgs.add(cleaned)
 
     latin = set()
     for m in LATIN_RE.finditer(t):
@@ -168,18 +246,20 @@ def check_self_consistency(reason, answer, question=""):
 
     # ---- 标题 ----
     rt, at = rf["titles"], af["titles"]
-    if rt and at:
-        common = rt & at
-        if not common:
-            severity = max(severity, "suspicious", key=["none", "suspicious", "conflict"].index)
-            details.append(
-                f"理由与答案提到不同标题：理由《{'》《'.join(sorted(rt))}》，"
-                f"答案《{'》《'.join(sorted(at))}》")
+    if rt and at and not _overlap(rt, at):
+        severity = max(severity, "suspicious",
+                       key=["none", "suspicious", "conflict"].index)
+        details.append(
+            f"理由与答案提到不同标题：理由《{'》《'.join(sorted(rt))}》，"
+            f"答案《{'》《'.join(sorted(at))}》")
 
     # ---- 机构 ----
+    # 用 _overlap 而非集合相等：中文实体抽取常带前后粘连，
+    # 严格比较会把同一机构判成不同机构（实测误报：法国科学院 vs 年由法国科学院）。
     ro, ao = rf["orgs"], af["orgs"]
-    if ro and ao and not (ro & ao):
-        severity = max(severity, "suspicious", key=["none", "suspicious", "conflict"].index)
+    if ro and ao and not _overlap(ro, ao):
+        severity = max(severity, "suspicious",
+                       key=["none", "suspicious", "conflict"].index)
         details.append(
             f"理由与答案提到不同机构：理由 {sorted(ro)}，答案 {sorted(ao)}")
 
@@ -233,28 +313,38 @@ def check_cross_entities(answers, question=""):
     )
 
     for field, label, is_number in FIELDS:
-        sets = [f[field] for f in facts]
-        non_empty = [s for s in sets if s]
-        if len(non_empty) < 2:
+        sets = [f[field] for f in facts if f[field]]
+        if len(sets) < 2:
             continue
 
-        shared = set.intersection(*non_empty)
-        if shared:
-            lone = set()
-            for s in non_empty:
-                lone |= (s - shared)
-            if lone:
-                severity = max(severity, "suspicious",
-                               key=["none", "suspicious", "conflict"].index)
-                details.append(f"{label}存在分歧：公认 {sorted(shared)}，"
-                               f"另有 {sorted(lone)} 只出现在部分答案中")
-        else:
-            # 毫无交集：各方结论完全不同 → 这是可确定判定的矛盾，
-            # 例如 847×9639 的三个答案 8164233 / 8193133 / 8160533。
+        # 用两两重叠判定，而不是求交集。
+        # 原因：中文实体抽取常带前后粘连，且同一实体的不同写法（译名、
+        # 全称与简称）无法靠集合相等捕捉。_overlap 把"一方是另一方子串"
+        # 也算作重叠，能容忍这类差异。
+        #
+        # 判定：
+        #   所有两两都重叠        -> 一致，不报
+        #   部分重叠、部分不重叠  -> suspicious（可能是补充细节，也可能有分歧）
+        #   完全没有重叠          -> conflict（各方结论完全不同）
+        pairs = [(i, j) for i in range(len(sets)) for j in range(i + 1, len(sets))]
+        n_overlap = sum(1 for i, j in pairs if _overlap(sets[i], sets[j]))
+
+        if n_overlap == len(pairs):
+            continue
+        if n_overlap == 0:
             severity = "conflict"
-            shown = " | ".join(
-                f"答案{i+1}={sorted(s)[:3]}" for i, s in enumerate(sets) if s)
+            shown = " | ".join(f"答案{i+1}={sorted(s)[:3]}"
+                               for i, s in enumerate(sets))
             details.append(f"{label}完全不一致：{shown}")
+        else:
+            severity = max(severity, "suspicious",
+                           key=["none", "suspicious", "conflict"].index)
+            distinct = []
+            for s in sets:
+                if not any(_overlap(s, d) for d in distinct):
+                    distinct.append(s)
+            shown = "；".join(sorted(d)[:3] for d in distinct)
+            details.append(f"{label}存在分歧，可归为 {len(distinct)} 种说法：{shown}")
 
     return {"severity": severity, "details": details, "facts": facts}
 
