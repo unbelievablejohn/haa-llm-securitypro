@@ -11,7 +11,7 @@ for _s in (sys.stdout, sys.stderr):
         pass
 
 P = r"C:\Users\WMX\Desktop\haa-llm-security"
-OUT = os.path.join(P, "tqa_results", "tqa_manual.json")
+OUT = os.path.join(P, "data", "04_公开基准", "tqa_manual.json")
 
 # ---------------------------------------------------------------------------
 # 人工核对结论（逐条读模型实际输出后填写）
@@ -202,7 +202,7 @@ def main():
     L.append("")
 
     text = "\n".join(L)
-    open(os.path.join(P, "truthfulqa_subset_report.md"), "w",
+    open(os.path.join(P, "reports", "06_公开基准_精选子集.md"), "w",
          encoding="utf-8").write(text)
 
     print("=" * 78)

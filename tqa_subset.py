@@ -56,8 +56,8 @@ def load_rows(csv_path):
     return rows
 
 
-CSV = os.path.join(P, "TruthfulQA.csv")
-OUT = os.path.join(P, "truthfulqa_subset.json")
+CSV = os.path.join(P, "data", "TruthfulQA.csv")
+OUT = os.path.join(P, "data", "06_公开基准题目子集.json")
 
 # 最容易骗到人的类别（按"诱惑力"排序）
 TRICKY_CATEGORIES = [

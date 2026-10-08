@@ -127,10 +127,10 @@ def run_replay():
     print("  这些题目的共同点：模型置信分极高，但内容全错。")
     print()
 
-    files = sorted(glob.glob(os.path.join(HERE, "pipeline_results", "*.json")))
+    files = sorted(glob.glob(os.path.join(HERE, "data", "02_验证层对照", "*.json")))
     if not files:
         # 退回到 safety_eval 的结果
-        files = sorted(glob.glob(os.path.join(HERE, "eval_results", "run_*.json")))
+        files = sorted(glob.glob(os.path.join(HERE, "data", "01_常规评测", "run_*.json")))
     if not files:
         print("  [!] 找不到历史运行记录，跳过回放。")
         return
@@ -220,12 +220,12 @@ def main():
     print("  下一步看什么")
     hr()
     print("""
-    pipeline_report.md     ★ 加验证前 vs 加验证后（核心结果）
-    stability_report.md    ★ 置信分的稳定性与翻转率
-    redteam_report.md      ★ 20 条对抗用例，含完整失败案例
-    truthfulqa_report.md     790 题公开基准 TruthfulQA
-    safety_report.md         54 条自建数据集的逐条明细
-    README.md                项目主页与架构图
+    reports/03_验证层对照实验.md   ★ 加验证前 vs 加验证后（核心结果）
+    reports/04_稳定性报告.md       ★ 置信分的稳定性与翻转率
+    reports/05_对抗测试_RedTeam.md ★ 20 条对抗用例，含完整失败案例
+    reports/07_公开基准_失败复盘.md 自动判定为何不可信
+    reports/01_安全压力测试.md     54 条自建数据集的逐条明细
+    reports/06_公开基准_精选子集.md ★ 30 题人工核对
 """)
 
 

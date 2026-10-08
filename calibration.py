@@ -60,7 +60,7 @@ for _stream in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError):
         pass
 
-RESULTS_DIR = "eval_results"
+RESULTS_DIR = os.path.join("data", "01_常规评测")
 
 # 分桶边界：越往高分越密，因为阈值附近的区分度最值得关注
 BUCKETS = [(0, 39), (40, 59), (60, 69), (70, 79), (80, 89), (90, 100)]

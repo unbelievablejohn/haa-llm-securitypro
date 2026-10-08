@@ -60,7 +60,7 @@ python -m venv .venv
 实测：同一个模型说"我有 95.6% 的把握"，实际只有 62.5% 是对的。
 **所以本项目一半的工作量，是在检验这个分数本身靠不靠得住。**
 
-> 更完整的背景见 [详细技术报告](docs/详细技术报告.md) 开头部分。
+> 更完整的背景见 [详细技术报告](docs/01_详细技术报告.md) 开头部分。
 
 ## 第 2 步：跑起来（零成本，不需要密钥）
 
@@ -112,18 +112,18 @@ $env:HAA_API_KEY = "你的密钥"
 | **①** | **注入防御** | 提示词加固 + 程序层检测 | [`injection_guard.py`](injection_guard.py) | 本 README 关键结果 ④ | 同一道注入题：置信分 **90 → 0**（并停止编造） |
 | **②** | **校准分析** | 量化"分数是否可信" | [`calibration.py`](calibration.py) | 本 README 关键结果 ②③ | 发现分数是**二值信号**，最大空档 **48 分** |
 | **③** | **打分机制 + 原因分类** | 把"不确定"分成六类 | [`day5.py`](day5.py) | 本 README 的「打分机制」一节 | 六类判定 **5/5 正确** |
-| **④** | **程序层校验** | 自洽性 + 跨候选实体比对 | [`consistency_guard.py`](consistency_guard.py) | [safety_report.md](safety_report.md) | 8/8 构造样本通过；真实数据 0 检出（**如实报告**） |
+| **④** | **程序层校验** | 自洽性 + 跨候选实体比对 | [`consistency_guard.py`](consistency_guard.py) | [safety_report.md](reports/01_安全压力测试.md) | 8/8 构造样本通过；真实数据 0 检出（**如实报告**） |
 | **⑤** | **成本收益核算** | 实测每次提问的调用次数 | [`cost_benefit.py`](cost_benefit.py) | 本 README 关键结果 ⑥ | 程序层 **1.50 次调用（+0）** 拦下全部注入样本 |
-| **⑥** | **更换公开测试集** | TruthfulQA | [`tqa_subset.py`](tqa_subset.py) · [`tqa_manual.py`](tqa_manual.py) · [`tqa_label.py`](tqa_label.py) | [truthfulqa_subset_report.md](truthfulqa_subset_report.md) · [truthfulqa_report.md](truthfulqa_report.md) | 全量跑**失败**（欠费+判定器不可信）→ 改为 **30 题逐条人工核对** |
-| **⑦** | **多次重复测量** | 同题反复跑，看分数波动 | [`stability.py`](stability.py) · [`repeat_run.py`](repeat_run.py) | [stability_report.md](stability_report.md) | DeepSeek 7 次 / 智谱 5 次；**智谱分数波动是 DeepSeek 的 9 倍** |
+| **⑥** | **更换公开测试集** | TruthfulQA | [`tqa_subset.py`](tqa_subset.py) · [`tqa_manual.py`](tqa_manual.py) · [`tqa_label.py`](tqa_label.py) | [truthfulqa_subset_report.md](reports/06_公开基准_精选子集.md) · [truthfulqa_report.md](reports/07_公开基准_失败复盘.md) | 全量跑**失败**（欠费+判定器不可信）→ 改为 **30 题逐条人工核对** |
+| **⑦** | **多次重复测量** | 同题反复跑，看分数波动 | [`stability.py`](stability.py) · [`repeat_run.py`](repeat_run.py) | [stability_report.md](reports/04_稳定性报告.md) | DeepSeek 7 次 / 智谱 5 次；**智谱分数波动是 DeepSeek 的 9 倍** |
 | **⑧** | **全面 bug 检查** | 静态分析 + 边界测试 | [`edge_tests.py`](edge_tests.py) | 本 README 的局限章节 | pyflakes **零问题**；边界测试 **41/41**；抓到 **2 个潜在漏洞** |
 
 ## 计划表里的重大突破
 
 | 顺序 | 迭代 | 做了什么 | 代码 | 报告 | 关键结论（实测） |
 |---|---|---|---|---|---|
-| **★** | **验证层（最大突破）** | 三段式流水线：自评 → 作答 → **另一厂商模型独立验证** | [`day5_pipeline.py`](day5_pipeline.py) | [**pipeline_report.md**](pipeline_report.md) | **自信但答错：7 → 1**，且过度拒答**没有增加** |
-| **★** | **Red Team 对抗测试** | 20 条主动攻击自己的用例 | [`redteam_cases.py`](redteam_cases.py) · [`redteam_run.py`](redteam_run.py) | [**redteam_report.md**](redteam_report.md) | 被攻破率 **10%**；攻破者全是「**真实元素的合理拼接**」 |
+| **★** | **验证层（最大突破）** | 三段式流水线：自评 → 作答 → **另一厂商模型独立验证** | [`day5_pipeline.py`](day5_pipeline.py) | [**pipeline_report.md**](reports/03_验证层对照实验.md) | **自信但答错：7 → 1**，且过度拒答**没有增加** |
+| **★** | **Red Team 对抗测试** | 20 条主动攻击自己的用例 | [`redteam_cases.py`](redteam_cases.py) · [`redteam_run.py`](redteam_run.py) | [**redteam_report.md**](reports/05_对抗测试_RedTeam.md) | 被攻破率 **10%**；攻破者全是「**真实元素的合理拼接**」 |
 
 ## 作品化
 
@@ -131,8 +131,8 @@ $env:HAA_API_KEY = "你的密钥"
 |---|---|---|
 | **A** | 5 分钟演示 | [`demo.py`](demo.py)（`--offline` 零成本） |
 | **B** | 项目主页 + 架构图 | 本 README |
-| **C** | 完整技术记录 | [docs/详细技术报告.md](docs/详细技术报告.md) |
-| **D** | 把技术翻译成叙事 | [docs/Essay素材.md](docs/Essay素材.md) |
+| **C** | 完整技术记录 | [docs/01_详细技术报告.md](docs/01_详细技术报告.md) |
+| **D** | 把技术翻译成叙事 | [docs/02_Essay素材.md](docs/02_Essay素材.md) |
 
 ---
 
@@ -316,14 +316,14 @@ $env:HAA_API_KEY = "你的密钥"
 而**单纯的虚构（R1–R6）全部被挡住了**。这是一条清晰的边界：
 系统能识别"这个词我没见过"，但难以识别"这些词我都见过、只是组合起来是假的"。
 
-**完整失败案例记录（含实际输出）见 [redteam_report.md](redteam_report.md)。**
+**完整失败案例记录（含实际输出）见 [redteam_report.md](reports/05_对抗测试_RedTeam.md)。**
 
 ### ⑧ ★ 公开基准结果：拒答机制在这里**只有代价、没有收益**
 
 接入 TruthfulQA（学术界公认基准，每道题都配有"人类常见错误答案"作为诱饵）。
 
 全量 790 题的评测**失败了两次**（API 欠费 + 自建的自动判定器不可信，
-详见 [truthfulqa_report.md](truthfulqa_report.md)）。
+详见 [truthfulqa_report.md](reports/07_公开基准_失败复盘.md)）。
 
 **改为只跑 30 道最有迷惑性的题，逐条人工核对**（不依赖任何自动判定器）：
 
@@ -352,7 +352,7 @@ $env:HAA_API_KEY = "你的密钥"
 > 但识别不了「**这个说法我见过、而且记的是错的那版**」；
 > 更糟的是，它对后者会**过度保守** —— 对它其实答得最准的一类问题拒答。
 
-完整报告见 [truthfulqa_subset_report.md](truthfulqa_subset_report.md)。
+完整报告见 [truthfulqa_subset_report.md](reports/06_公开基准_精选子集.md)。
 
 ---
 
@@ -489,15 +489,15 @@ safety_eval.py             评测框架（生成 safety_report.md）
 demo.py                    5 分钟演示（--offline 零成本）
 
 【文档】
-docs/详细技术报告.md         完整实验记录与每一处修正的来龙去脉
-docs/Essay素材.md            把技术工作翻译成叙事与数字
+docs/01_详细技术报告.md         完整实验记录与每一处修正的来龙去脉
+docs/02_Essay素材.md            把技术工作翻译成叙事与数字
 
 【结果数据】
-eval_results/              13 份运行记录（用于复现稳定性分析）
-pipeline_results/          验证层对照实验的原始记录
-redteam_results/           Red Team 原始记录
-tqa_results/               公开基准的人工核对结果
-truthfulqa_subset.json     公开基准的题目子集
+data/01_常规评测/              13 份运行记录（用于复现稳定性分析）
+data/02_验证层对照/          验证层对照实验的原始记录
+data/03_对抗测试/           Red Team 原始记录
+data/04_公开基准/               公开基准的人工核对结果
+data/06_公开基准题目子集.json     公开基准的题目子集
 ```
 
 ---
@@ -523,7 +523,7 @@ truthfulqa_subset.json     公开基准的题目子集
    > 因为验证样本是"把错误答案抄一遍"—— 而真实模型会先复述误解再驳斥它。
    > **100% 的通过率不是可靠性的证据，而可能是验证集太弱的信号。**
 
-   完整复盘见 [truthfulqa_report.md](truthfulqa_report.md)。
+   完整复盘见 [truthfulqa_report.md](reports/07_公开基准_失败复盘.md)。
 
 7. **30 题精选子集是作者筛的**，筛选过程本身可能引入偏差；人工判定由一人完成，
    未做双人复核。
@@ -535,15 +535,15 @@ truthfulqa_subset.json     公开基准的题目子集
 | 顺序 | 文档 | 内容 |
 |---|---|---|
 | 1 | 本 README | 项目主页、架构、关键结果 |
-| 2 | [**验证层对照实验**](pipeline_report.md) | ★ **最有价值的一张表**：加验证前 vs 加验证后 |
-| 3 | [**稳定性报告**](stability_report.md) | ★ 重复测量：置信分波动、翻转率 |
-| 4 | [**Red Team 结果**](redteam_report.md) | ★ 20 条对抗用例逐条记录（**含完整失败案例**） |
-| 5 | [**TruthfulQA 精选子集**](truthfulqa_subset_report.md) | ★ 30 条最有迷惑性的题，逐条人工判读 |
-| 6 | [TruthfulQA 全量评测（失败复盘）](truthfulqa_report.md) | 一次失败的方法学实践：自动判定为什么不可信 |
-| 7 | [安全压力测试报告](safety_report.md) | 54 条样本的逐条明细与指标 |
-| 8 | [智谱对照报告](safety_report_glm.md) | 换模型后的失效点对比 |
-| 9 | [详细技术报告](docs/详细技术报告.md) | 完整实验记录、方法论、每一处修正的来龙去脉 |
-| 10 | [Essay 素材](docs/Essay素材.md) | 把技术工作翻译成可写进文书的叙事与数字 |
+| 2 | [**验证层对照实验**](reports/03_验证层对照实验.md) | ★ **最有价值的一张表**：加验证前 vs 加验证后 |
+| 3 | [**稳定性报告**](reports/04_稳定性报告.md) | ★ 重复测量：置信分波动、翻转率 |
+| 4 | [**Red Team 结果**](reports/05_对抗测试_RedTeam.md) | ★ 20 条对抗用例逐条记录（**含完整失败案例**） |
+| 5 | [**TruthfulQA 精选子集**](reports/06_公开基准_精选子集.md) | ★ 30 条最有迷惑性的题，逐条人工判读 |
+| 6 | [TruthfulQA 全量评测（失败复盘）](reports/07_公开基准_失败复盘.md) | 一次失败的方法学实践：自动判定为什么不可信 |
+| 7 | [安全压力测试报告](reports/01_安全压力测试.md) | 54 条样本的逐条明细与指标 |
+| 8 | [智谱对照报告](reports/02_智谱对照.md) | 换模型后的失效点对比 |
+| 9 | [详细技术报告](docs/01_详细技术报告.md) | 完整实验记录、方法论、每一处修正的来龙去脉 |
+| 10 | [Essay 素材](docs/02_Essay素材.md) | 把技术工作翻译成可写进文书的叙事与数字 |
 
 ---
 

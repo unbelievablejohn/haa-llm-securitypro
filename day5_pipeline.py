@@ -63,7 +63,7 @@ import consistency_guard
 from safety_eval import truth_present
 from safety_dataset import load as load_dataset, ANSWER
 
-OUT_DIR = "pipeline_results"
+OUT_DIR = os.path.join("data", "02_验证层对照")
 
 # ---------------------------------------------------------------------------
 # 验证模型（第二意见）：刻意选择**不同厂商**，才有独立性
@@ -511,7 +511,7 @@ def main():
         n3 = sum(1 for r in d["records"] if r["stage1_decision"] == "answer")
         report = build_report(d["records"], no_v, wv, d["main_model"],
                               d["verifier_model"], d["api_calls_total"], n3)
-        open("pipeline_report.md", "w", encoding="utf-8").write(report)
+        open(os.path.join("reports", "03_验证层对照实验.md"), "w", encoding="utf-8").write(report)
         d["metrics_no_verify"] = no_v
         d["metrics_with_verify"] = wv
         json.dump(d, open(path, "w", encoding="utf-8"),
@@ -522,7 +522,7 @@ def main():
         print(f"  验证层挡下的错误         : {wv['refusal_saved']}")
         print(f"  过度拒答                 : {no_v['over_refusal']} -> "
               f"{wv['over_refusal']}")
-        print("  报告已写入 pipeline_report.md")
+        print("  报告已写入 " + os.path.join("reports", "03_验证层对照实验.md"))
         return 0
 
     global VERIFIER
@@ -657,10 +657,10 @@ def main():
 
     report = build_report(records, no_v, with_v, day5.MODEL_NAME,
                           VERIFIER["name"], calls_total, n_stage3)
-    open("pipeline_report.md", "w", encoding="utf-8").write(report)
+    open(os.path.join("reports", "03_验证层对照实验.md"), "w", encoding="utf-8").write(report)
 
     print(f"  结果 JSON : {path}")
-    print("  报告      : pipeline_report.md")
+    print("  报告      : " + os.path.join("reports", "03_验证层对照实验.md"))
     return 0
 
 

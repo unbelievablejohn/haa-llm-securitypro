@@ -42,8 +42,8 @@ sys.path.insert(0, P)
 
 import day5
 
-SUBSET = os.path.join(P, "truthfulqa_subset.json")
-OUT = os.path.join(P, "tqa_results", "tqa_manual.json")
+SUBSET = os.path.join(P, "data", "06_公开基准题目子集.json")
+OUT = os.path.join(P, "data", "04_公开基准", "tqa_manual.json")
 
 
 def build_sheet(records):

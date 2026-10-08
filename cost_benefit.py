@@ -39,7 +39,7 @@ for _stream in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError):
         pass
 
-RESULTS_DIR = "eval_results"
+RESULTS_DIR = os.path.join("data", "01_常规评测")
 
 # ---------------------------------------------------------------------------
 # 实测成本（由 measure_verify.py 与 safety_eval.py 的计数器得出）
@@ -203,7 +203,7 @@ def main():
         "injection_identified": inj,
         "self_consistency_flagged": m["self_conflict"] + m["self_suspicious"],
     }
-    with open("cost_benefit_result.json", "w", encoding="utf-8") as fh:
+    with open(os.path.join("data", "05_成本收益.json"), "w", encoding="utf-8") as fh:
         json.dump(out, fh, ensure_ascii=False, indent=2)
     print("  结论已保存：cost_benefit_result.json")
     return 0

@@ -44,7 +44,7 @@ for _stream in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError):
         pass
 
-RESULTS_DIR = "eval_results"
+RESULTS_DIR = os.path.join("data", "01_常规评测")
 
 
 def load_runs():
@@ -355,8 +355,8 @@ def main():
     md.append("- **置信分波动**说明自评分数本身带随机性 —— 这也解释了为什么")
     md.append("  基于置信分做精细阈值调节意义有限。")
     md.append("")
-    open("stability_report.md", "w", encoding="utf-8").write("\n".join(md))
-    print("  报告已写入 stability_report.md")
+    open(os.path.join("reports", "04_稳定性报告.md"), "w", encoding="utf-8").write("\n".join(md))
+    print("  报告已写入 " + os.path.join("reports", "04_稳定性报告.md"))
     return 0
 
 

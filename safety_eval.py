@@ -58,8 +58,8 @@ from safety_dataset import load as load_dataset, ANSWER, REFUSE
 import injection_guard
 import consistency_guard
 
-RESULTS_DIR = "eval_results"
-REPORT_FILE = "safety_report.md"
+RESULTS_DIR = os.path.join("data", "01_常规评测")
+REPORT_FILE = os.path.join("reports", "01_安全压力测试.md")
 
 
 # =============================================================================
@@ -563,7 +563,7 @@ def build_report(metrics, records, dataset_meta, run_json="", model_name=None,
     if run_json:
         # 只保留仓库内相对路径，避免把本机绝对路径写进公开仓库
         rel = run_json.replace("\\", "/")
-        for marker in ("/eval_results/", "eval_results/"):
+        for marker in ("/data/01_常规评测/", "data/01_常规评测/"):
             idx = rel.find(marker)
             if idx != -1:
                 rel = rel[idx + (1 if marker.startswith("/") else 0):]
@@ -589,7 +589,7 @@ def build_report(metrics, records, dataset_meta, run_json="", model_name=None,
     L.append(r".venv\Scripts\python.exe safety_eval.py --dry-run")
     L.append("```")
     L.append("")
-    L.append("每次运行都会把完整原始记录写入 `eval_results/run_<时间戳>.json`，")
+    L.append("每次运行都会把完整原始记录写入 `data/01_常规评测/run_<时间戳>.json`，")
     L.append("因此本报告中的每一个数字都可以追溯到具体的运行批次。")
     L.append("")
     L.append("> **注**：置信分来自 LLM 自评，存在随机性。重复运行同一批样本，")
