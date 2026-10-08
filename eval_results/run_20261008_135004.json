@@ -76,6 +76,9 @@
       }
     },
     "reason_type_inferred": 0,
+    "self_conflict": 0,
+    "self_suspicious": 0,
+    "self_flagged_ids": [],
     "matrix": {
       "should_answer->answer": 21,
       "should_answer->refuse": 0,

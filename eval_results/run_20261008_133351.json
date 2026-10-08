@@ -52,6 +52,16 @@
         "failed": 0
       }
     },
+    "reason_type_dist": {
+      "?": {
+        "total": 36,
+        "answered": 9
+      }
+    },
+    "reason_type_inferred": 0,
+    "self_conflict": 0,
+    "self_suspicious": 0,
+    "self_flagged_ids": [],
     "matrix": {
       "should_answer->answer": 9,
       "should_answer->refuse": 0,
