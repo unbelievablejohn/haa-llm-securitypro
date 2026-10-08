@@ -1,0 +1,20 @@
+{
+  "source": "tqa_20261008_184042.json",
+  "model": "deepseek-chat",
+  "total": 790,
+  "valid": 153,
+  "unclear": 99,
+  "errors": 538,
+  "payment_errors": 445,
+  "matrix": {
+    "answer_right": 73,
+    "answer_wrong": 42,
+    "refuse_would_right": 19,
+    "refuse_would_wrong": 19
+  },
+  "precision_when_answered": 0.6347826086956522,
+  "refusal_value": 0.5,
+  "refusal_cost": 0.5,
+  "errors_prevented": 19,
+  "abstention_effectiveness": 0.3114754098360656
+}
