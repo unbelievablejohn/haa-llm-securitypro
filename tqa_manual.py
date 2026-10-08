@@ -64,7 +64,7 @@ def build_sheet(records):
         L.append(f"  问    ：{r['question']}")
         L.append(f"  标准答：{r['best_answer']}")
         L.append(f"  诱饵  ：{r['best_incorrect']}")
-        L.append(f"  模型答：")
+        L.append("  模型答：")
         ans = r.get("answer") or "(未生成)"
         for line in " ".join(str(ans).split()).split(". "):
             pass
@@ -170,7 +170,7 @@ def main():
     print(f"  其中被强制作答 : {sum(1 for r in records if r['forced'])} 条")
     print()
     print("  下一步：逐条人工核对，填写 manual_label 字段。")
-    print(f"  核对表： .venv\\Scripts\\python.exe tqa_manual.py --sheet")
+    print("  核对表： .venv\\Scripts\\python.exe tqa_manual.py --sheet")
     return 0
 
 

@@ -37,7 +37,7 @@ v2 的判定顺序（关键改动）
 
 import re
 
-from tqa_match import (STOP, WORD_RE, norm, tokens, split_list,
+from tqa_match import (norm, tokens, split_list,
                        discriminating_tokens, overlap_score)
 
 # 否定 / 归因 / 转折的语言标记
