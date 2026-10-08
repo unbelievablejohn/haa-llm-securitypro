@@ -217,17 +217,23 @@
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 
-# 2) 密钥（源码中不含任何密钥，全部从环境变量读取）
+# 2) ★ 5 分钟看懂这个项目在做什么（零成本，不需要密钥）
+.venv\Scripts\python.exe demo.py --offline
+
+# 3) 密钥（源码中不含任何密钥，全部从环境变量读取）
 $env:HAA_API_KEY = "你的密钥"
 
-# 3) 零费用：只校验数据集完整性，不调用任何 API
+# 4) 零费用：只校验数据集完整性，不调用任何 API
 .venv\Scripts\python.exe safety_eval.py --dry-run
 
-# 4) 一条命令跑通完整评测（54 条，会真实调用 API）
+# 5) 一条命令跑通完整评测（54 条，会真实调用 API）
 .venv\Scripts\python.exe safety_eval.py
 
-# 5) 问一个问题（交互）
+# 6) 问一个问题（交互）
 .venv\Scripts\python.exe day5.py "量子纠缠熵梯度补偿理论是什么？"
+
+# 7) 完整演示（含实时调用）
+.venv\Scripts\python.exe demo.py
 ```
 
 ---
@@ -235,6 +241,7 @@ $env:HAA_API_KEY = "你的密钥"
 ## 项目结构
 
 ```
+demo.py                    ★ 5 分钟演示（--offline 零成本）
 day5.py                    ★ 核心：不确定性评估（Module 1）
 day5_pipeline.py           ★ 三段式流水线 + 验证层对照实验（Module 2）
 redteam_run.py             ★ Red Team 对抗测试（Module 3）
@@ -253,8 +260,9 @@ tqa_match.py               TruthfulQA 答案自动判定器
 
 redteam_cases.py           20 条对抗用例
 repeat_run.py              重复测量驱动
+edge_tests.py              边界与异常输入测试（46 用例）
 
-docs/                      详细技术报告
+docs/                      详细技术报告、Essay 素材
 eval_results/              每次运行的结果 JSON（可追溯）
 ```
 
@@ -286,6 +294,7 @@ eval_results/              每次运行的结果 JSON（可追溯）
 | [**Red Team 结果**](redteam_report.md) | 20 条对抗用例逐条记录（**含完整失败案例**） |
 | [TruthfulQA 评测报告](truthfulqa_report.md) | 790 题公开基准上的结果 |
 | [智谱对照报告](safety_report_glm.md) | 换模型后的失效点对比 |
+| [Essay 素材](docs/Essay素材.md) | 把技术工作翻译成可写进文书的叙事与数字 |
 
 ---
 
