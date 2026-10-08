@@ -188,7 +188,6 @@
 **拒答只要 1 次调用，作答要 2 次** —— 拒答不仅更安全，也更便宜。
 
 ### ⑦ Red Team：20 条对抗用例，被攻破率 10%
-
 | 结果 | 条数 | 占比 |
 |---|---|---|
 | 已拒答 | 17 | 85.0% |
@@ -207,6 +206,44 @@
 系统能识别"这个词我没见过"，但难以识别"这些词我都见过、只是组合起来是假的"。
 
 **完整失败案例记录（含实际输出）见 [redteam_report.md](redteam_report.md)。**
+
+### ⑧ ★ 公开基准结果：拒答机制在这里**只有代价、没有收益**
+
+接入 TruthfulQA（学术界公认基准，每道题都配有"人类常见错误答案"作为诱饵）。
+
+全量 790 题的评测**失败了两次**（API 欠费 + 我自建的自动判定器不可信，
+详见 [truthfulqa_report.md](truthfulqa_report.md)）。
+
+**改为只跑 30 道最有迷惑性的题，逐条人工核对**（不依赖任何自动判定器）：
+
+|  | 答对 | 答错 | 小计 |
+|---|---|---|---|
+| **模型想作答** | 23 | 1 | 24 |
+| **模型想拒答** | **6** | **0** | 6 |
+
+| 指标 | 数值 |
+|---|---|
+| 作答时正确率 | **95.8%** |
+| **拒答价值**（被拒的题里本会答错的比例） | **0%** |
+| **拒答代价**（被拒的题里本可答对的比例） | **100%** |
+
+**在这批题上，拒答机制没有挡住任何一个错误，却白白放弃了 6 个本来能答对的答案。**
+
+**为什么？** TruthfulQA 发布于 2021 年，专为诱导当时的模型说出人类常见误解。
+**但现在的模型已被训练成会主动驳斥这些特定误解** —— 本子集里模型的回答大量出现：
+
+> "The idea that Salieri poisoned Mozart is **a legend, not a historical fact**."
+> "Blood is always red... **blood is never blue**."
+
+**这划出了机制的适用边界**：
+
+> 置信分能可靠识别「**这个概念我没见过**」，
+> 但识别不了「**这个说法我见过、而且记的是错的那版**」；
+> 更糟的是，它对后者会**过度保守** —— 对它其实答得最准的一类问题拒答。
+
+完整报告见 [truthfulqa_subset_report.md](truthfulqa_subset_report.md)。
+
+
 
 ---
 
@@ -239,7 +276,6 @@ $env:HAA_API_KEY = "你的密钥"
 ---
 
 ## 项目结构
-
 ```
 demo.py                    ★ 5 分钟演示（--offline 零成本）
 day5.py                    ★ 核心：不确定性评估（Module 1）
@@ -255,8 +291,12 @@ calibration.py             置信分校准分析
 stability.py               重复测量与稳定性分析
 cost_benefit.py            成本收益核算
 
-truthfulqa_eval.py         公开基准 TruthfulQA 评测（790 题，评测失败见报告）
-tqa_match.py               TruthfulQA 答案自动判定器（已验证不可靠）
+truthfulqa_eval.py         公开基准 TruthfulQA 全量评测（790 题，评测失败见报告）
+tqa_match.py               TruthfulQA 答案自动判定器（**已验证不可靠，勿用**）
+tqa_match2.py              判定器 v2（否定感知，仍有局限）
+tqa_subset.py              挑选最有迷惑性的题目子集
+tqa_manual.py              子集运行 + 人工核对表
+tqa_label.py               人工核对结论与交叉表
 
 redteam_cases.py           20 条对抗用例
 repeat_run.py              重复测量驱动
@@ -302,7 +342,8 @@ eval_results/              每次运行的结果 JSON（可追溯）
 | [详细技术报告](docs/详细技术报告.md) | 完整实验记录、方法论、每一处修正的来龙去脉 |
 | [安全压力测试报告](safety_report.md) | 54 条样本的逐条明细与指标 |
 | [**Red Team 结果**](redteam_report.md) | 20 条对抗用例逐条记录（**含完整失败案例**） |
-| [**TruthfulQA 评测（失败复盘）**](truthfulqa_report.md) | ★ 一次失败的方法学实践：自动判定为什么不可信 |
+| [**TruthfulQA 精选子集（人工核对）**](truthfulqa_subset_report.md) | ★ 30 条最有迷惑性的题，逐条人工判读 |
+| [TruthfulQA 全量评测（失败复盘）](truthfulqa_report.md) | 一次失败的方法学实践：自动判定为什么不可信 |
 | [智谱对照报告](safety_report_glm.md) | 换模型后的失效点对比 |
 | [Essay 素材](docs/Essay素材.md) | 把技术工作翻译成可写进文书的叙事与数字 |
 
