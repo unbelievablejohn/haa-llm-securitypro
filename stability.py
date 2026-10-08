@@ -285,17 +285,52 @@ def main():
     print()
 
     analyzed = 0
+    md = []
+    md.append("# 置信分稳定性报告（重复测量）")
+    md.append("")
+    md.append("## 为什么必须重复测量")
+    md.append("")
+    md.append("单次运行的结果**不能代表真实发生率**。本项目已有直接证据：")
+    md.append("")
+    md.append("```")
+    md.append("圆周率小数点后 10 位（K8），真值 3.1415926535")
+    md.append("  第 1 次  答 3.1415926536   错")
+    md.append("  第 2 次  答 3.1415926535   对")
+    md.append("  第 3 次  答 3.1415926536   错")
+    md.append("```")
+    md.append("")
+    md.append("三次错两次，而**置信分每次都是 98**。只跑一次就下结论，")
+    md.append("「这个模型能不能算对这道题」会得到完全相反的答案。")
+    md.append("")
+    md.append("同理，「DeepSeek 1.0 对 智谱 0.867」这种模型对比，如果各自只跑一次，")
+    md.append("差距可能纯粹来自运气，不足以支撑任何结论。")
+    md.append("")
+    md.append("## 运行记录概览")
+    md.append("")
+    md.append("| 模型 | 样本数 | 强制作答 | 运行次数 |")
+    md.append("|---|---|---|---|")
+    for key in sorted(groups, key=lambda k: (-len(groups[k]), k[0])):
+        model, n_items, forced = key
+        md.append(f"| {model} | {n_items} | {'是' if forced else '否'} | "
+                  f"{len(groups[key])} |")
+    md.append("")
+    md.append("> 只有**样本集相同**的运行才能比较 —— 数据集从 21 条一路扩到 54 条，")
+    md.append("> 跨规模的运行放在一起算方差毫无意义。")
+    md.append("")
+
     for key in sorted(groups, key=lambda k: (k[0], k[1])):
         g = groups[key]
         if len(g) < args.min_runs:
             continue
         analyzed += 1
-        print(report_group(key, stability_of_group(g)))
+        text = report_group(key, stability_of_group(g))
+        print(text)
+        md.append(text)
 
     if analyzed == 0:
         print(f"没有任何配置达到 {args.min_runs} 次运行的阈值。")
-        print("请先用 repeat_run.ps1 重复测量，例如：")
-        print("  powershell -File repeat_run.ps1 -Model deepseek -Times 5")
+        print("请先重复测量，例如：")
+        print("  .venv\\Scripts\\python.exe repeat_run.py deepseek 5")
         return 1
 
     print("=" * 84)
@@ -310,6 +345,18 @@ def main():
   · 置信分波动大，说明自评分数本身带随机性 —— 这也解释了为什么
     基于置信分做精细阈值调节意义有限。
 """)
+    md.append("## 怎么读这份报告")
+    md.append("")
+    md.append("- **指标标准差为 0** —— 该配置下结论稳定，单次结果即可代表。")
+    md.append("- **指标标准差 > 0** —— 单次运行的数字不足以支撑结论，必须报区间。")
+    md.append("- **正确性翻转的题目最值得关注**：同一道题有时对、有时错，说明模型")
+    md.append("  对它的掌握处于边界状态，而**置信分往往看不出来**。")
+    md.append("  这正是「高置信但不可靠」的具体形态。")
+    md.append("- **置信分波动**说明自评分数本身带随机性 —— 这也解释了为什么")
+    md.append("  基于置信分做精细阈值调节意义有限。")
+    md.append("")
+    open("stability_report.md", "w", encoding="utf-8").write("\n".join(md))
+    print("  报告已写入 stability_report.md")
     return 0
 
 
