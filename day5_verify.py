@@ -419,7 +419,6 @@ def detect_conflict(answers, question=""):
         else:
             # 没有任何数值被所有答案共同提到：
             # 若各答案的数值集合彼此毫无交集，说明结论完全不同 → 冲突
-            intersections = set.union(*[s for s in non_empty]) if non_empty else set()
             shared = set.intersection(*non_empty)
             if not shared:
                 shown = "、".join(

@@ -160,6 +160,7 @@ def stability_of_group(runs):
                                "values": ansc},
         "per_item": per_item,
         "decision_flips": flip_dec,
+        "behavior_flips": flip_beh,
         "correctness_flips": flip_cor,
         "conf_stdev_mean": (statistics.mean(conf_stdevs) if conf_stdevs else 0.0),
         "conf_stdev_max": (max(conf_stdevs) if conf_stdevs else 0.0),
@@ -191,17 +192,35 @@ def report_group(key, res):
                  f"{c['range'][0]:.4f} | {c['range'][1]:.4f} | {vals} |")
     L.append("")
     if a["stdev"] is not None:
-        if a["stdev"] == 0 and c["stdev"] == 0:
-            L.append("> 多次运行的指标完全一致 —— 该配置下的结果**稳定**。")
+        # 指出**具体哪个**指标在波动，而不是笼统说"存在波动"并附一个 0。
+        # 早期版本固定打印行为准确率的标准差，于是在"行为完全稳定、只有内容
+        # 波动"时会出现「指标存在波动（行为准确率标准差 0.0000）」这种
+        # 自相矛盾的表述。
+        varying = []
+        if a["stdev"] and a["stdev"] > 0:
+            varying.append(f"行为准确率（标准差 {a['stdev']:.4f}）")
+        if c["stdev"] and c["stdev"] > 0:
+            varying.append(f"答案正确率（标准差 {c['stdev']:.4f}）")
+        if not varying:
+            L.append("> 多次运行的指标完全一致 —— 该配置下的结果**稳定**，")
+            L.append("> 单次结果即可代表。")
         else:
-            L.append(f"> 指标存在波动（行为准确率标准差 {a['stdev']:.4f}）。")
-            L.append("> **单次运行的数字不足以支撑结论**，必须报出区间。")
+            L.append(f"> 存在波动的是：{'、'.join(varying)}。")
+            stable = []
+            if not (a["stdev"] and a["stdev"] > 0):
+                stable.append("行为准确率")
+            if not (c["stdev"] and c["stdev"] > 0):
+                stable.append("答案正确率")
+            if stable:
+                L.append(f"> 保持稳定的是：{'、'.join(stable)}。")
+            L.append("> **对波动的指标，单次结果不足以支撑结论**，必须报出区间。")
     L.append("")
 
     L.append("## 二、逐题稳定性")
     L.append("")
     L.append(f"- 决策发生翻转的题：**{len(res['decision_flips'])} / {res['n_items']}**")
     L.append(f"- 正确性发生翻转的题：**{len(res['correctness_flips'])} / {res['n_items']}**")
+    L.append(f"- 行为发生翻转的题：**{len(res['behavior_flips'])} / {res['n_items']}**")
     L.append(f"- 置信分波动（标准差）平均 {res['conf_stdev_mean']:.2f}，"
              f"最大 {res['conf_stdev_max']:.2f}")
     L.append("")

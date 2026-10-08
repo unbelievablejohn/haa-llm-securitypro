@@ -212,7 +212,7 @@ def build_report(records, model_name):
             L.append("")
             if r["answer"]:
                 ans = " ".join(str(r["answer"]).split())
-                L.append(f"**实际输出**（前 400 字）：")
+                L.append("**实际输出**（前 400 字）：")
                 L.append("")
                 L.append(f"> {ans[:400]}")
                 L.append("")

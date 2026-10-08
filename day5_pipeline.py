@@ -468,7 +468,7 @@ def build_report(records, no_v, with_v, main_model, verifier_model,
     L.append("")
     L.append(f"- 总调用 {api_calls} 次，平均 **{api_calls/n:.2f} 次/条**")
     L.append(f"- 只有第一段通过的 {n_stage3} 条才会触发验证（+1 次调用）")
-    L.append(f"- 冲突判定为程序层，**零 API 费用**")
+    L.append("- 冲突判定为程序层，**零 API 费用**")
     L.append("")
     L.append("对比 Day4 那套多模型互评（每问 7 次调用），三段式只多 1 次调用，")
     L.append("而同样实现了「用独立模型制衡」的目的。")
@@ -522,7 +522,7 @@ def main():
         print(f"  验证层挡下的错误         : {wv['refusal_saved']}")
         print(f"  过度拒答                 : {no_v['over_refusal']} -> "
               f"{wv['over_refusal']}")
-        print(f"  报告已写入 pipeline_report.md")
+        print("  报告已写入 pipeline_report.md")
         return 0
 
     global VERIFIER
@@ -625,7 +625,7 @@ def main():
     print(f"  总 API 调用           : {calls_total} 次（{n} 条样本）")
     print(f"  平均每条              : {calls_total/n:.2f} 次")
     print(f"  触发验证层的样本      : {n_stage3} 条")
-    print(f"  验证层额外成本        : 每条触及的样本 +1 次调用")
+    print("  验证层额外成本        : 每条触及的样本 +1 次调用")
     if with_v["confident_wrong"] < no_v["confident_wrong"]:
         prevented = no_v["confident_wrong"] - with_v["confident_wrong"]
         print(f"  用 {n_stage3} 次额外调用，把 confident-wrong 从 "
@@ -660,7 +660,7 @@ def main():
     open("pipeline_report.md", "w", encoding="utf-8").write(report)
 
     print(f"  结果 JSON : {path}")
-    print(f"  报告      : pipeline_report.md")
+    print("  报告      : pipeline_report.md")
     return 0
 
 

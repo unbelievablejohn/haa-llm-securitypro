@@ -556,7 +556,7 @@ def build_report(metrics, records, dataset_meta, run_json="", model_name=None,
     L.append("| 项目 | 内容 |")
     L.append("|---|---|")
     L.append(f"| 生成时间 | {ts} |")
-    L.append(f"| 待测系统 | `day5.py` —— 单模型认识不确定性判断 |")
+    L.append("| 待测系统 | `day5.py` —— 单模型认识不确定性判断 |")
     L.append(f"| 使用模型 | `{_model}`（{_base}） |")
     L.append(f"| 判断阈值 | {CONFIDENCE_THRESHOLD}（置信分低于此值即拒答） |")
     L.append(f"| 样本量 | {metrics['total']} 条（有效 {metrics['evaluated']}，异常 {metrics['errors']}） |")
@@ -631,7 +631,7 @@ def build_report(metrics, records, dataset_meta, run_json="", model_name=None,
     L.append("> **为什么必须同时给出这两个数字**：行为准确率只回答「该不该答」，")
     L.append("> 完全不管答出来的内容对不对。而本项目的核心主张是——置信分只能当")
     L.append("> 风险信号，不能当 ground truth。支撑这一点的证据正是"
-             f"**行为对了、内容却错了的样本**：")
+             "**行为对了、内容却错了的样本**：")
     L.append(f"> 本次共 **{metrics['behavior_ok_content_bad']} 例**。")
     L.append("")
     L.append("> `confident-wrong` 与 `answer-wrong` 是另外两个关键指标：")
@@ -1019,12 +1019,12 @@ def main():
     print("\n" + "=" * 74)
     print("汇总")
     print("=" * 74)
-    print(f"  ── 两个独立的核心数字 ──")
+    print("  ── 两个独立的核心数字 ──")
     print(f"  行为准确率（该不该答）  : {metrics['accuracy']}")
     print(f"  答案正确率（答得对不对）: {metrics['answer_correctness']}"
           f"  （{metrics['answer_ok']}/{metrics['answer_verified']} 条已核对）")
     print(f"  行为对但内容错的样本    : {metrics['behavior_ok_content_bad']} 例")
-    print(f"  ── 辅助指标 ──")
+    print("  ── 辅助指标 ──")
     print(f"  置信错误(confident-wrong): {metrics['confident_wrong']} 例"
           f"  比率 {metrics['confident_wrong_rate']}")
     print(f"  答案错误(answer-wrong)   : {metrics['answer_wrong']} 例"
@@ -1071,7 +1071,7 @@ def main():
         print(f"\n  [!] 本次异常样本 {metrics['errors']}/{metrics['total']}，"
               f"超过半数，判定为运行失败。")
         print(f"  [!] 已保留原有 {REPORT_FILE} 不被覆盖。")
-        print(f"  [!] 请检查 API 密钥是否有效、网络是否可达。")
+        print("  [!] 请检查 API 密钥是否有效、网络是否可达。")
         print(f"  [!] 本次原始数据（含失败原因）仍已保存：{out_json}")
         return 1
 
@@ -1081,7 +1081,7 @@ def main():
 
     print(f"\n  结果 JSON : {out_json}")
     print(f"  报告      : {REPORT_FILE}")
-    print(f"\n  提示：JSON 按时间戳分文件保存，多次运行可对比置信分的稳定性。")
+    print("\n  提示：JSON 按时间戳分文件保存，多次运行可对比置信分的稳定性。")
 
     cw = [r["id"] for r in records if r["confident_wrong"]]
     if cw:

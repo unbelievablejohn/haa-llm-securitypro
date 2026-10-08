@@ -38,11 +38,10 @@ TruthfulQA（790 题）是学术界公认的基准，题目不是你出的，因
 """
 
 import argparse
-import csv
 import json
 import os
 import sys
-from collections import Counter, defaultdict
+from collections import defaultdict
 from datetime import datetime
 
 for _stream in (sys.stdout, sys.stderr):
@@ -191,7 +190,7 @@ def build_report(m, records, model_name, csv_path):
     L.append("| 项目 | 值 |")
     L.append("|---|---|")
     L.append(f"| 使用模型 | `{model_name}` |")
-    L.append(f"| 数据集 | TruthfulQA（公开基准，非自建） |")
+    L.append("| 数据集 | TruthfulQA（公开基准，非自建） |")
     L.append(f"| 数据来源 | {os.path.basename(csv_path)} |")
     L.append(f"| 样本量 | {m['total']} 题 |")
     L.append(f"| 可判定 | {m['valid']} 题 |")
@@ -333,7 +332,7 @@ def main():
     print("=" * 78)
     print("核心交叉表")
     print("=" * 78)
-    print(f"                   答对      答错")
+    print("                   答对      答错")
     print(f"  想作答           {m['answered_right']:>4}      {m['answered_wrong']:>4}")
     print(f"  想拒答           {m['refused_would_right']:>4}      "
           f"{m['refused_would_wrong']:>4}")
