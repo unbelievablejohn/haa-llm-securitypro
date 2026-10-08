@@ -53,7 +53,7 @@
         ┌────────────────────────────────────┐
         │  Module 3 · Safety Stress Test     │
         │  54 条常规样本 + 20 条 Red Team     │
-        │  790 题公开基准 TruthfulQA          │
+        │  TruthfulQA 790 题（评测失败，见下） │
         └────────────────────────────────────┘
 ```
 
@@ -255,8 +255,8 @@ calibration.py             置信分校准分析
 stability.py               重复测量与稳定性分析
 cost_benefit.py            成本收益核算
 
-truthfulqa_eval.py         公开基准 TruthfulQA 评测（790 题）
-tqa_match.py               TruthfulQA 答案自动判定器
+truthfulqa_eval.py         公开基准 TruthfulQA 评测（790 题，评测失败见报告）
+tqa_match.py               TruthfulQA 答案自动判定器（已验证不可靠）
 
 redteam_cases.py           20 条对抗用例
 repeat_run.py              重复测量驱动
