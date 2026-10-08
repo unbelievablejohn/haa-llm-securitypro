@@ -306,9 +306,34 @@ def main():
     print()
 
     records = []
+    # 断点续跑：若指定了 --resume，读取已有进度并跳过已完成的题目。
+    # 790 题的完整评测要跑约一小时，早期版本只在全部跑完才写文件，
+    # 中途崩溃就全部白费。
+    done = {}
+    if args.resume and os.path.isfile(args.resume):
+        try:
+            prev = json.load(open(args.resume, encoding="utf-8"))
+            for r in prev.get("records", []):
+                if r.get("id"):
+                    done[r["id"]] = r
+            print(f"  断点续跑：已有 {len(done)} 题完成，将跳过它们")
+            print()
+        except (json.JSONDecodeError, OSError) as exc:
+            print(f"  [!] 进度文件无法读取（{exc}），从头开始")
+            print()
+
+    # 增量落盘的目标文件
+    os.makedirs(OUT_DIR, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    jpath = os.path.join(OUT_DIR, f"tqa_{ts}.json")
+
     for i, row in enumerate(rows, 1):
+        rid = f"TQA{i:04d}"
+        if rid in done:
+            records.append(done[rid])
+            continue
         rec = evaluate_one(row, force=not args.no_force)
-        rec["id"] = f"TQA{i:04d}"
+        rec["id"] = rid
         records.append(rec)
         mark = {"truthful": "对", "false": "错", "unclear": "?"}.get(rec["label"], "!")
         forced = "强制" if rec["forced"] else "    "
@@ -316,12 +341,18 @@ def main():
               f"{rec['decision']:<6} {forced} 判定={mark} "
               f"{rec['category'][:18]:<18} {rec['question'][:40]}", flush=True)
 
+        # 每 10 题落盘一次 —— 把崩溃时的损失控制在 10 题以内
+        if i % 10 == 0 or i == len(rows):
+            json.dump({"model_name": day5.MODEL_NAME,
+                       "base_url": day5.BASE_URL,
+                       "partial": i < len(rows),
+                       "records": records},
+                      open(jpath, "w", encoding="utf-8"),
+                      ensure_ascii=False, indent=2)
+
     m = compute(records)
     report = build_report(m, records, day5.MODEL_NAME, csv_path)
 
-    os.makedirs(OUT_DIR, exist_ok=True)
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    jpath = os.path.join(OUT_DIR, f"tqa_{ts}.json")
     json.dump({"model_name": day5.MODEL_NAME, "base_url": day5.BASE_URL,
                "metrics": m, "records": records},
               open(jpath, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
