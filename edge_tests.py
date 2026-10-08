@@ -28,7 +28,6 @@ sys.path.insert(0, P)
 
 import consistency_guard as cg
 import injection_guard as ig
-import tqa_match as tm
 from safety_eval import normalize_number, truth_present
 
 results = []
@@ -134,31 +133,23 @@ check("年份一致不误报",
           "该定理于 1968 年证明", "该定理于 1968 年证明")["severity"], "none")
 
 # ===========================================================================
-# 4. tqa_match（TruthfulQA 答案判定器）
+# 4. 报告生成函数（确认对空数据不崩溃）
 # ===========================================================================
 print()
 print("=" * 76)
-print("4. TruthfulQA 答案判定器")
+print("4. 报告生成与指标计算")
 print("=" * 76)
 
-EMPTY_ROW = {"Question": "q", "Best Answer": "", "Best Incorrect Answer": "",
-             "Correct Answers": "", "Incorrect Answers": ""}
-
-check("classify(None, 空行)",
-      lambda: tm.classify(None, EMPTY_ROW)["label"])
-check("classify('', 空行)",
-      lambda: tm.classify("", EMPTY_ROW)["label"], "unclear")
-check("classify 正常文本 + 空行（应 unclear 不崩）",
-      lambda: tm.classify("some answer text here", EMPTY_ROW)["label"],
-      "unclear")
-check("classify 缺字段的行",
-      lambda: tm.classify("text", {"Question": "q"})["label"], "unclear")
-check("discriminating_tokens(空行)",
-      lambda: isinstance(tm.discriminating_tokens(EMPTY_ROW), set), True)
-check("norm(None)", lambda: tm.norm(None), "")
-check("tokens(None)", lambda: tm.tokens(None), [])
-check("split_list(None)", lambda: tm.split_list(None), [])
-check("split_list('a;b;;c')", lambda: tm.split_list("a;b;;c"), ["a", "b", "c"])
+check("injection_guard.summarize(空扫描结果)",
+      lambda: isinstance(ig.summarize(ig.scan("")), str), True)
+check("consistency_guard.summarize(空结果)",
+      lambda: isinstance(cg.summarize({"severity": "none", "details": []}), str),
+      True)
+check("extract_facts 对纯数字文本",
+      lambda: cg.extract_facts("12345 67890")["years"] == set(), True)
+check("check_cross_entities 三份完全一致",
+      lambda: cg.check_cross_entities(["答案是 1968 年", "答案是 1968 年",
+                                       "答案是 1968 年"])["severity"], "none")
 
 # ===========================================================================
 # 5. 数据集一致性

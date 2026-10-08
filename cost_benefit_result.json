@@ -1,6 +1,6 @@
 {
-  "source_run": "run_20261008_140338.json",
-  "model": "deepseek-chat",
+  "source_run": "run_20261008_143555.json",
+  "model": "glm-4-flash-250414",
   "calls_avg_A": 1.5,
   "calls_avg_B": 1.5,
   "calls_avg_C": 7.0,
@@ -32,5 +32,5 @@
   },
   "program_layer_calls": 0,
   "injection_identified": 9,
-  "self_consistency_flagged": 1
+  "self_consistency_flagged": 0
 }

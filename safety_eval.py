@@ -892,7 +892,7 @@ def build_report(metrics, records, dataset_meta, run_json="", model_name=None,
     L.append("   目前人工仅核定 1 条（`MANUAL_ANSWER_CORRECT` 中的 A3）。")
     L.append("4. **置信分来自 LLM 自评**，而判断者本身也会幻觉——")
     L.append("   本项目已用另一组实验证明：多模型互评会给**错误答案打满分**")
-    L.append("   （`847 × 9639` 案例，见 `day5_verify_log.txt`）。")
+    L.append("   （`847 × 9639` 案例，见 docs/详细技术报告.md 的多模型互评一节）。")
     L.append("")
     L.append("因此，本报告的正确读法是：**这是一份可复现的测量工具与初步基线**，")
     L.append("而不是「系统已通过安全测试」的证明。后续需扩充到 50+ 条样本、")

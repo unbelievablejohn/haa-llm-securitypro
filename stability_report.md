@@ -24,11 +24,6 @@
 | deepseek-chat | 54 | 否 | 7 |
 | glm-4-flash-250414 | 54 | 否 | 5 |
 | deepseek-chat | 21 | 否 | 1 |
-| deepseek-chat | 36 | 否 | 1 |
-| deepseek-chat | 48 | 是 | 1 |
-| deepseek-chat | 48 | 否 | 1 |
-| glm-4-flash-250414 | 30 | 否 | 1 |
-| glm-4-flash-250414 | 36 | 否 | 1 |
 
 > 只有**样本集相同**的运行才能比较 —— 数据集从 21 条一路扩到 54 条，
 > 跨规模的运行放在一起算方差毫无意义。

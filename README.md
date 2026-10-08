@@ -276,34 +276,33 @@ $env:HAA_API_KEY = "你的密钥"
 ---
 
 ## 项目结构
+
 ```
-demo.py                    ★ 5 分钟演示（--offline 零成本）
 day5.py                    ★ 核心：不确定性评估（Module 1）
-day5_pipeline.py           ★ 三段式流水线 + 验证层对照实验（Module 2）
-redteam_run.py             ★ Red Team 对抗测试（Module 3）
+day5_pipeline.py           ★ 三段式流水线 + 验证层对照实验（Module 2，最大突破）
+redteam_run.py + cases     ★ Red Team 对抗测试（Module 3）
+demo.py                    ★ 5 分钟演示（--offline 零成本）
 
 injection_guard.py         输入层：提示注入检测（零成本）
 consistency_guard.py       输出层：自洽性 + 实体比对（零成本）
-
 safety_dataset.py          54 条标注数据集
 safety_eval.py             评测框架（生成 safety_report.md）
-calibration.py             置信分校准分析
+
+calibration.py             置信分校准分析（发现分数是二值信号）
 stability.py               重复测量与稳定性分析
-cost_benefit.py            成本收益核算
-
-truthfulqa_eval.py         公开基准 TruthfulQA 全量评测（790 题，评测失败见报告）
-tqa_match.py               TruthfulQA 答案自动判定器（**已验证不可靠，勿用**）
-tqa_match2.py              判定器 v2（否定感知，仍有局限）
-tqa_subset.py              挑选最有迷惑性的题目子集
-tqa_manual.py              子集运行 + 人工核对表
-tqa_label.py               人工核对结论与交叉表
-
-redteam_cases.py           20 条对抗用例
+cost_benefit.py            成本收益核算（实测调用计数）
+edge_tests.py              边界与异常输入测试
 repeat_run.py              重复测量驱动
-edge_tests.py              边界与异常输入测试（46 用例）
+
+tqa_subset.py              ┐
+tqa_manual.py              ├ 公开基准 TruthfulQA 的最终方案
+tqa_label.py               ┘ （人工核对，不依赖自动判定器）
 
 docs/                      详细技术报告、Essay 素材
-eval_results/              每次运行的结果 JSON（可追溯）
+eval_results/              运行结果 JSON（13 份，用于复现稳定性分析）
+pipeline_results/          验证层对照实验的原始记录
+redteam_results/           Red Team 原始记录
+tqa_results/               公开基准的人工核对结果
 ```
 
 ---

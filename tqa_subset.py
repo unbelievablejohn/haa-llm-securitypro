@@ -40,7 +40,21 @@ for _s in (sys.stdout, sys.stderr):
 
 P = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, P)
-from tqa_match import load_rows
+def load_rows(csv_path):
+    """
+    读取 TruthfulQA 的 CSV。
+
+    原先从 tqa_match 导入。tqa_match 已被移除（它的自动判定器经实测不可靠，
+    教训记录在 truthfulqa_report.md），因此把这个只有几行的读取函数内联进来，
+    避免为了一个 CSV 读取而保留一整个模块。
+    """
+    import csv as _csv
+    rows = []
+    with open(csv_path, encoding="utf-8") as f:
+        for r in _csv.DictReader(f):
+            rows.append(r)
+    return rows
+
 
 CSV = os.path.join(P, "TruthfulQA.csv")
 OUT = os.path.join(P, "truthfulqa_subset.json")
