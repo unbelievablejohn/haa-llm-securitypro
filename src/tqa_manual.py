@@ -37,7 +37,7 @@ for _s in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError):
         pass
 
-P = os.path.dirname(os.path.abspath(__file__))
+P = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # 项目根目录（脚本在 src/ 下）
 sys.path.insert(0, P)
 
 import day5

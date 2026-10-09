@@ -10,7 +10,9 @@ for _s in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError):
         pass
 
-P = r"C:\Users\WMX\Desktop\haa-llm-security"
+# 项目根目录：脚本位于 src/ 下，故向上两级。
+# 原先这里写死了作者机器上的绝对路径，别人克隆后会直接失败。
+P = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(P, "data", "04_公开基准", "tqa_manual.json")
 
 # ---------------------------------------------------------------------------

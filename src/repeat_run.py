@@ -25,7 +25,7 @@ for _s in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError):
         pass
 
-PROJ = os.path.dirname(os.path.abspath(__file__))
+PROJ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # 项目根目录（脚本在 src/ 下）
 PY = os.path.join(PROJ, ".venv", "Scripts", "python.exe")
 
 # 每个目标模型：从哪个环境变量取密钥，以及可选的 base_url / model 覆盖

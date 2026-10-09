@@ -14,6 +14,7 @@ edge_tests.py —— 边界与异常输入测试
 它们**必须**对任何输入都给出确定行为，而不是崩掉。
 """
 
+import os
 import sys
 import traceback
 
@@ -23,8 +24,13 @@ for _s in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError):
         pass
 
-P = r"C:\Users\WMX\Desktop\haa-llm-security"
-sys.path.insert(0, P)
+# 脚本自身所在目录（即 src/），供同级模块互相 import 使用
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _HERE)
+
+# 项目根目录（脚本位于 src/ 下，故向上两级），数据与报告的路径基准
+# 原先这里写死了作者机器上的绝对路径，别人克隆后会直接失败。
+P = os.path.dirname(_HERE)
 
 import consistency_guard as cg
 import injection_guard as ig

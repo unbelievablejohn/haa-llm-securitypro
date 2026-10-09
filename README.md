@@ -66,13 +66,13 @@ python -m venv .venv
 
 ```powershell
 # ★ 5 分钟演示：用 4 个问题展示全部关键行为，不调用任何 API
-.venv\Scripts\python.exe demo.py --offline
+.venv\Scripts\python.exe src\demo.py --offline
 
 # 零费用：只校验数据集完整性
-.venv\Scripts\python.exe safety_eval.py --dry-run
+.venv\Scripts\python.exe src\safety_eval.py --dry-run
 
 # 边界与异常测试
-.venv\Scripts\python.exe edge_tests.py
+.venv\Scripts\python.exe src\edge_tests.py
 ```
 
 **看到效果之后，再往下读关键结果。**
@@ -84,13 +84,13 @@ python -m venv .venv
 $env:HAA_API_KEY = "你的密钥"
 
 # 问一个问题（交互）
-.venv\Scripts\python.exe day5.py "量子纠缠熵梯度补偿理论是什么？"
+.venv\Scripts\python.exe src\day5.py "量子纠缠熵梯度补偿理论是什么？"
 
 # 完整评测（54 条，会真实调用 API）
-.venv\Scripts\python.exe safety_eval.py
+.venv\Scripts\python.exe src\safety_eval.py
 
 # 完整演示（含实时调用）
-.venv\Scripts\python.exe demo.py
+.venv\Scripts\python.exe src\demo.py
 ```
 
 ---
@@ -103,33 +103,33 @@ $env:HAA_API_KEY = "你的密钥"
 
 | 顺序 | 迭代 | 代码 | 关键结论 |
 |---|---|---|---|
-| **0** | **核心机制**：回答前先自评不确定性 | [`day5.py`](day5.py) | 置信分达标才作答；不足则**不生成任何内容** |
+| **0** | **核心机制**：回答前先自评不确定性 | [`day5.py`](src/day5.py) | 置信分达标才作答；不足则**不生成任何内容** |
 
 ## 八步优化（按指定顺序）
 
 | 顺序 | 迭代 | 做了什么 | 代码 | 报告 | 关键结论（实测） |
 |---|---|---|---|---|---|
-| **①** | **注入防御** | 提示词加固 + 程序层检测 | [`injection_guard.py`](injection_guard.py) | 本 README 关键结果 ④ | 同一道注入题：置信分 **90 → 0**（并停止编造） |
-| **②** | **校准分析** | 量化"分数是否可信" | [`calibration.py`](calibration.py) | 本 README 关键结果 ②③ | 发现分数是**二值信号**，最大空档 **48 分** |
-| **③** | **打分机制 + 原因分类** | 把"不确定"分成六类 | [`day5.py`](day5.py) | 本 README 的「打分机制」一节 | 六类判定 **5/5 正确** |
-| **④** | **程序层校验** | 自洽性 + 跨候选实体比对 | [`consistency_guard.py`](consistency_guard.py) | [safety_report.md](reports/01_安全压力测试.md) | 8/8 构造样本通过；真实数据 0 检出（**如实报告**） |
-| **⑤** | **成本收益核算** | 实测每次提问的调用次数 | [`cost_benefit.py`](cost_benefit.py) | 本 README 关键结果 ⑥ | 程序层 **1.50 次调用（+0）** 拦下全部注入样本 |
-| **⑥** | **更换公开测试集** | TruthfulQA | [`tqa_subset.py`](tqa_subset.py) · [`tqa_manual.py`](tqa_manual.py) · [`tqa_label.py`](tqa_label.py) | [truthfulqa_subset_report.md](reports/06_公开基准_精选子集.md) · [truthfulqa_report.md](reports/07_公开基准_失败复盘.md) | 全量跑**失败**（欠费+判定器不可信）→ 改为 **30 题逐条人工核对** |
-| **⑦** | **多次重复测量** | 同题反复跑，看分数波动 | [`stability.py`](stability.py) · [`repeat_run.py`](repeat_run.py) | [stability_report.md](reports/04_稳定性报告.md) | DeepSeek 7 次 / 智谱 5 次；**智谱分数波动是 DeepSeek 的 9 倍** |
-| **⑧** | **全面 bug 检查** | 静态分析 + 边界测试 | [`edge_tests.py`](edge_tests.py) | 本 README 的局限章节 | pyflakes **零问题**；边界测试 **41/41**；抓到 **2 个潜在漏洞** |
+| **①** | **注入防御** | 提示词加固 + 程序层检测 | [`injection_guard.py`](src/injection_guard.py) | 本 README 关键结果 ④ | 同一道注入题：置信分 **90 → 0**（并停止编造） |
+| **②** | **校准分析** | 量化"分数是否可信" | [`calibration.py`](src/calibration.py) | 本 README 关键结果 ②③ | 发现分数是**二值信号**，最大空档 **48 分** |
+| **③** | **打分机制 + 原因分类** | 把"不确定"分成六类 | [`day5.py`](src/day5.py) | 本 README 的「打分机制」一节 | 六类判定 **5/5 正确** |
+| **④** | **程序层校验** | 自洽性 + 跨候选实体比对 | [`consistency_guard.py`](src/consistency_guard.py) | [safety_report.md](reports/01_安全压力测试.md) | 8/8 构造样本通过；真实数据 0 检出（**如实报告**） |
+| **⑤** | **成本收益核算** | 实测每次提问的调用次数 | [`cost_benefit.py`](src/cost_benefit.py) | 本 README 关键结果 ⑥ | 程序层 **1.50 次调用（+0）** 拦下全部注入样本 |
+| **⑥** | **更换公开测试集** | TruthfulQA | [`tqa_subset.py`](src/tqa_subset.py) · [`tqa_manual.py`](src/tqa_manual.py) · [`tqa_label.py`](src/tqa_label.py) | [truthfulqa_subset_report.md](reports/06_公开基准_精选子集.md) · [truthfulqa_report.md](reports/07_公开基准_失败复盘.md) | 全量跑**失败**（欠费+判定器不可信）→ 改为 **30 题逐条人工核对** |
+| **⑦** | **多次重复测量** | 同题反复跑，看分数波动 | [`stability.py`](src/stability.py) · [`repeat_run.py`](src/repeat_run.py) | [stability_report.md](reports/04_稳定性报告.md) | DeepSeek 7 次 / 智谱 5 次；**智谱分数波动是 DeepSeek 的 9 倍** |
+| **⑧** | **全面 bug 检查** | 静态分析 + 边界测试 | [`edge_tests.py`](src/edge_tests.py) | 本 README 的局限章节 | pyflakes **零问题**；边界测试 **41/41**；抓到 **2 个潜在漏洞** |
 
 ## 计划表里的重大突破
 
 | 顺序 | 迭代 | 做了什么 | 代码 | 报告 | 关键结论（实测） |
 |---|---|---|---|---|---|
-| **★** | **验证层（最大突破）** | 三段式流水线：自评 → 作答 → **另一厂商模型独立验证** | [`day5_pipeline.py`](day5_pipeline.py) | [**pipeline_report.md**](reports/03_验证层对照实验.md) | **自信但答错：7 → 1**，且过度拒答**没有增加** |
-| **★** | **Red Team 对抗测试** | 20 条主动攻击自己的用例 | [`redteam_cases.py`](redteam_cases.py) · [`redteam_run.py`](redteam_run.py) | [**redteam_report.md**](reports/05_对抗测试_RedTeam.md) | 被攻破率 **10%**；攻破者全是「**真实元素的合理拼接**」 |
+| **★** | **验证层（最大突破）** | 三段式流水线：自评 → 作答 → **另一厂商模型独立验证** | [`day5_pipeline.py`](src/day5_pipeline.py) | [**pipeline_report.md**](reports/03_验证层对照实验.md) | **自信但答错：7 → 1**，且过度拒答**没有增加** |
+| **★** | **Red Team 对抗测试** | 20 条主动攻击自己的用例 | [`redteam_cases.py`](src/redteam_cases.py) · [`redteam_run.py`](src/redteam_run.py) | [**redteam_report.md**](reports/05_对抗测试_RedTeam.md) | 被攻破率 **10%**；攻破者全是「**真实元素的合理拼接**」 |
 
 ## 作品化
 
 | 顺序 | 内容 | 产物 |
 |---|---|---|
-| **A** | 5 分钟演示 | [`demo.py`](demo.py)（`--offline` 零成本） |
+| **A** | 5 分钟演示 | [`demo.py`](src/demo.py)（`--offline` 零成本） |
 | **B** | 项目主页 + 架构图 | 本 README |
 | **C** | 完整技术记录 | [docs/01_详细技术报告.md](docs/01_详细技术报告.md) |
 | **D** | 把技术翻译成叙事 | [docs/02_Essay素材.md](docs/02_Essay素材.md) |
@@ -177,8 +177,8 @@ $env:HAA_API_KEY = "你的密钥"
 
 | 层 | 模块 | 检查什么 |
 |---|---|---|
-| 输入层 | [`injection_guard.py`](injection_guard.py) | 这道题是不是在试图操纵我 |
-| 输出层 | [`consistency_guard.py`](consistency_guard.py) | 这份输出自己有没有前后矛盾 |
+| 输入层 | [`injection_guard.py`](src/injection_guard.py) | 这道题是不是在试图操纵我 |
+| 输出层 | [`consistency_guard.py`](src/consistency_guard.py) | 这份输出自己有没有前后矛盾 |
 
 ---
 
@@ -445,63 +445,62 @@ confident = conf >= CONFIDENCE_THRESHOLD  # ③ 与阈值比较，得出"是否�
 
 ---
 
-## 项目结构（按迭代分组）
+## 项目结构
+
+**根目录只有 4 个文件夹 + 4 个文件，代码统一收在 `src/` 下。**
 
 ```
-【前提】核心机制
-day5.py                    不确定性评估：自评 → 阈值判定 → 拒答或作答
+README.md                  项目主页（迭代顺序表在第一屏）
+requirements.txt           依赖（核心只用 requests）
+.env.example               环境变量示例
+.gitignore
 
-【迭代 ①】注入防御（输入层）
-injection_guard.py         提示注入检测（纯正则，零成本）
+src/                       全部代码
+  day5.py                  ★ 核心：不确定性评估（Module 1）
+  safety_dataset.py        54 条标注数据集
+  safety_eval.py           评测框架
+  injection_guard.py       ★ 输入层：注入检测（零成本）
+  consistency_guard.py     ★ 输出层：自洽性 + 实体比对（零成本）
+  day5_pipeline.py         ★ 三段式流水线 + 验证层对照实验（最大突破）
+  calibration.py           置信分校准分析
+  stability.py             重复测量与稳定性分析
+  cost_benefit.py          成本收益核算
+  repeat_run.py            重复测量驱动
+  redteam_cases.py         ★ 20 条对抗用例
+  redteam_run.py           ★ Red Team 执行与逐条记录
+  tqa_subset.py            公开基准：挑选最有迷惑性的题
+  tqa_manual.py            公开基准：人工核对表
+  tqa_label.py             公开基准：交叉表
+  edge_tests.py            边界与异常输入测试
+  demo.py                  ★ 5 分钟演示（--offline 零成本）
 
-【迭代 ②⑤⑦】分析与测量
-calibration.py             置信分校准分析（发现分数是二值信号）
-stability.py               重复测量与稳定性分析
-repeat_run.py              重复测量驱动
-cost_benefit.py            成本收益核算（实测调用计数）
+data/                      结果数据（数字前缀 = 迭代顺序）
+  01_常规评测/              13 份运行记录（用于复现稳定性分析）
+  02_验证层对照/            验证层对照实验的原始记录
+  03_对抗测试/              Red Team 原始记录
+  04_公开基准/              公开基准的人工核对结果
+  05_成本收益.json          成本核算结论
+  06_公开基准题目子集.json   公开基准题目
+  TruthfulQA.csv           公开基准原始数据
 
-【迭代 ③】打分机制
-（实现在 day5.py 内，说明见本 README 的「打分机制」一节）
+docs/                      文档
+  01_详细技术报告.md        完整实验记录与每一处修正的来龙去脉
+  02_Essay素材.md           把技术工作翻译成叙事与数字
 
-【迭代 ④】程序层校验（输出层）
-consistency_guard.py       自洽性 + 跨候选实体比对（纯正则，零成本）
-
-【迭代 ⑥】公开基准
-tqa_subset.py              挑选最有迷惑性的题目子集
-tqa_manual.py              子集运行 + 生成人工核对表
-tqa_label.py               填人工结论 + 产出交叉表
-
-【迭代 ⑧】质量保障
-edge_tests.py              边界与异常输入测试
-
-【★ 验证层】最大突破
-day5_pipeline.py           三段式流水线 + 验证层对照实验
-
-【★ Red Team】
-redteam_cases.py           20 条对抗用例
-redteam_run.py             执行与逐条记录
-
-【评测框架】
-safety_dataset.py          54 条标注数据集（9 个类别）
-safety_eval.py             评测框架（生成 safety_report.md）
-
-【作品化】
-demo.py                    5 分钟演示（--offline 零成本）
-
-【文档】
-docs/01_详细技术报告.md         完整实验记录与每一处修正的来龙去脉
-docs/02_Essay素材.md            把技术工作翻译成叙事与数字
-
-【结果数据】
-data/01_常规评测/              13 份运行记录（用于复现稳定性分析）
-data/02_验证层对照/          验证层对照实验的原始记录
-data/03_对抗测试/           Red Team 原始记录
-data/04_公开基准/               公开基准的人工核对结果
-data/06_公开基准题目子集.json     公开基准的题目子集
+reports/                   全部报告（数字前缀 = 迭代顺序）
+  01_安全压力测试.md        54 条样本的逐条明细与指标
+  02_智谱对照.md            换模型后的失效点对比
+  03_验证层对照实验.md      ★ 最有价值的一张表
+  04_稳定性报告.md          ★ 重复测量：置信分波动、翻转率
+  05_对抗测试_RedTeam.md    ★ 20 条用例逐条记录（含完整失败案例）
+  06_公开基准_精选子集.md    ★ 30 题人工核对
+  07_公开基准_失败复盘.md   自动判定为什么不可信
 ```
 
----
-
+> **为什么代码不编号**：Python 的模块名不能以数字开头（`import 01_day5` 是语法错误），
+> 放进编号子目录又会让 `import day5` 这类互相引用全部失效，除非在每个源文件里
+> 加一段 sys.path 兜底代码。权衡后选择：**代码保持扁平，顺序由本页的迭代顺序表提供**
+> —— 它就在仓库首页，GitHub 会渲染在文件列表上方。
 ## 这个项目诚实承认的局限
 
 1. **样本量仍然偏小**。核心结论建立在自建的 54 条样本上；接入了 TruthfulQA
