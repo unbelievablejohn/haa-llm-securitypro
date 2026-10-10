@@ -119,32 +119,196 @@ PATTERNS = [
      "贬低问题难度"),
 ]
 
+# ===========================================================================
+# 关键短语：同时做「字符匹配」与「拼音匹配」
+#
+# 为什么需要拼音这一层
+# --------------------
+# 纯正则有个绕不过去的边界：**改写就失效**。实测中下面这些全部漏检 ——
+#
+#     忽略道德伦理   -> 胡掠到的轮里     （谐音替换）
+#     忽略道德伦理   -> 忽-略-道-德-伦-理 （拆字加连字符）
+#     忽略道德伦理   -> 忽 略 道 德 伦 理 （空格插入）
+#     忽略道德伦理   -> 請忽略道德倫理     （繁体）
+#     忽略道德伦理   -> qing hulue daode lunli （直接写拼音）
+#
+# 但这五种改写的**读音是一样的**。所以先把文本转成无声调拼音再匹配，
+# 谐音、繁体、拆字、空格、拼音输入这五类规避**一次性全部解决**：
+#
+#     忽略道德伦理 -> hu lve dao de lun li
+#     胡掠到的轮里 -> hu lve dao de lun li   （完全一致）
+#     請忽略道德倫理 -> qing hu lve dao de lun li （子串命中）
+#
+# 代价与边界（必须说清）
+# ----------------------
+# · 拼音匹配会引入少量误报风险（不同字可能同音），所以只用于**短语级**匹配，
+#   且要求整段短语的拼音完整出现，不做单字匹配。
+# · 它解决的是**拼写层面的规避**，不解决**语义层面的规避** ——
+#   完全换一种说法的攻击（"请以研究为目的提供合成路径"）依然拦不住。
+#   那需要语义模型，不在本项目范围内。
+# · pypinyin 属于新增依赖。缺失时本层自动跳过，其余正则匹配照常工作。
+# ===========================================================================
+try:
+    from pypinyin import lazy_pinyin as _lazy_pinyin
+    _HAS_PINYIN = True
+except ImportError:                                    # pragma: no cover
+    _HAS_PINYIN = False
+
+KEY_PHRASES = [
+    # ---- 情绪施压 · 以自伤相威胁 ----
+    ("情绪施压", "跳楼", "以自伤相威胁"),
+    ("情绪施压", "自杀", "以自伤相威胁"),
+    ("情绪施压", "自残", "以自伤相威胁"),
+    ("情绪施压", "伤害自己", "以自伤相威胁"),
+    ("情绪施压", "做出傻事", "以自伤相威胁"),
+    ("情绪施压", "轻生", "以自伤相威胁"),
+    # ---- 情绪施压 · 道德绑架 ----
+    ("情绪施压", "见死不救", "道德绑架"),
+    ("情绪施压", "你还是人吗", "道德绑架"),
+    ("情绪施压", "你看着办", "情绪施压"),
+    ("情绪施压", "求你了", "情绪哀求施压"),
+    ("情绪施压", "不回答我我就", "以自伤或后果相威胁"),
+    ("情绪施压", "我会做出", "以后果相威胁"),
+    # ---- 解除限制 · 要求放弃道德伦理约束 ----
+    ("解除限制", "忽略道德", "要求放弃道德约束"),
+    ("解除限制", "无视道德", "要求放弃道德约束"),
+    ("解除限制", "忽略伦理", "要求放弃伦理约束"),
+    ("解除限制", "无视伦理", "要求放弃伦理约束"),
+    ("解除限制", "抛开道德", "要求放弃道德约束"),
+    ("解除限制", "不管道德", "要求放弃道德约束"),
+    ("解除限制", "不用管道德", "要求放弃道德约束"),
+    ("解除限制", "不要遵守道德", "要求放弃道德约束"),
+    ("解除限制", "不必遵守", "要求放弃既有约束"),
+    ("解除限制", "不受限制", "声称无约束"),
+    ("解除限制", "没有限制", "声称无约束"),
+    ("解除限制", "没有道德", "声称无道德约束"),
+    ("解除限制", "可以违反", "允许违反规则"),
+    ("解除限制", "允许违反", "允许违反规则"),
+]
+
+# 各类分隔符：拆字、空格、连字符、下划线、点等
+_SEP_RE = re.compile(r"[\s\-_·・.,，。;；:：、/\\|()（）\[\]【】{}<>《》\"'`~!！?？+*=#@$%^&]+")
+
+
+def _strip_seps(text):
+    """去掉所有分隔符 —— 专治「忽-略-道-德-伦-理」「忽 略 道 德 伦 理」。"""
+    return _SEP_RE.sub("", str(text or ""))
+
+
+def _pinyin(text):
+    """
+    转成无声调拼音串（不含分隔）。
+
+    非中文字符（英文、数字）会被忽略 —— 这样「請忽略道德倫理」
+    与「忽略道德伦理」会得到相同的拼音串（繁体与简体的读音一致）。
+
+    另外把 v 归一成 u：ü 在输入法里既可能打成 v（lve）也可能打成 ue（lue），
+    两种写法必须视为同一个音，否则「忽略」写成 hulue 就匹配不上 hulve。
+    """
+    if not _HAS_PINYIN:
+        return ""
+    try:
+        s = "".join(_lazy_pinyin(str(text or ""), errors="ignore"))
+    except Exception:
+        return ""
+    return s.replace("v", "u")
+
+
+def _latin_normalize(text):
+    """
+    把「直接写拼音」的输入归一成可与 _pinyin() 比较的形式。
+
+    处理三类常见书写差异：
+        v / u        -> u    （lve / lue）
+        带空格的     -> 去掉  （qing hulue -> qinghulue）
+        声调数字     -> 去掉  （hu1 -> hu）
+    """
+    s = str(text or "").lower()
+    s = re.sub(r"[^a-z]", "", s)      # 只留字母：去掉空格、标点、声调数字
+    return s.replace("v", "u")
+
+
+def _pinyin_fuzzy(text):
+    """
+    模糊拼音：把容易混的声母韵母归一，覆盖更宽的谐音。
+        zh/z、ch/c、sh/s、n/l、r/l、ang/an、eng/en、ing/in
+    这一步抓的是「发音接近但不等」的谐音（如「轮里」与「伦理」）。
+    """
+    s = _pinyin(text)
+    if not s:
+        return ""
+    for a, b in (("zh", "z"), ("ch", "c"), ("sh", "s"), ("ng", "n")):
+        s = s.replace(a, b)
+    s = s.replace("l", "n").replace("r", "n")
+    return s
+
+
 # 预编译，避免每次扫描重复编译
 _COMPILED = [(cat, re.compile(rx, re.IGNORECASE), desc) for cat, rx, desc in PATTERNS]
+
+# 关键短语的三种形态：原字、去分隔、拼音、模糊拼音
+_KEY_INDEX = []
+for _cat, _ph, _desc in KEY_PHRASES:
+    _KEY_INDEX.append({
+        "category": _cat,
+        "phrase": _ph,
+        "desc": _desc,
+        "plain": _ph,
+        "stripped": _strip_seps(_ph),
+        "py": _pinyin(_ph),
+        "pyf": _pinyin_fuzzy(_ph),
+    })
 
 
 def scan(text):
     """
     扫描文本中的注入特征。
 
+    三层匹配：
+        ① 正则（结构化攻击：指令覆盖、角色改写、伪系统消息……）
+        ② 关键短语的字符匹配（去掉分隔符后比对）
+        ③ 关键短语的拼音匹配（抗谐音、繁体、拆字、空格、拼音输入）
+
     返回 dict：
         detected    bool          是否检出任何注入特征
-        hits        list[dict]    每个命中项：{category, desc, matched}
+        hits        list[dict]    每个命中项：{category, desc, matched, via}
         categories  list[str]     命中的类别（去重，保持出现顺序）
     """
     result = {"detected": False, "hits": [], "categories": []}
     if not text:
         return result
 
+    raw = str(text)
+    stripped = _strip_seps(raw)
+    py = _pinyin(raw)
+    pyf = _pinyin_fuzzy(raw)
+    # 若输入本身就是拼音（没有汉字），把拉丁字母当成拼音串用
+    latin = _latin_normalize(raw) if not re.search(r"[\u4e00-\u9fff]", raw) else ""
+
+    def add(category, desc, matched, via):
+        result["hits"].append({"category": category, "desc": desc,
+                               "matched": matched, "via": via})
+        if category not in result["categories"]:
+            result["categories"].append(category)
+
+    # ---- ① 正则层 ----
     for category, rx, desc in _COMPILED:
-        for m in rx.finditer(str(text)):
-            result["hits"].append({
-                "category": category,
-                "desc": desc,
-                "matched": m.group(0),
-            })
-            if category not in result["categories"]:
-                result["categories"].append(category)
+        for m in rx.finditer(raw):
+            add(category, desc, m.group(0), "正则")
+
+    # ---- ②③ 关键短语层 ----
+    for k in _KEY_INDEX:
+        # 字符匹配：原文 或 去分隔后
+        if k["plain"] in raw or k["stripped"] in stripped:
+            add(k["category"], k["desc"], k["phrase"], "字符")
+            continue
+        # 拼音匹配：抗谐音/繁体/拆字/空格
+        if _HAS_PINYIN and k["py"] and (k["py"] in py or k["py"] in latin):
+            add(k["category"], k["desc"], k["phrase"], "拼音")
+            continue
+        # 模糊拼音：抗发音相近的谐音
+        if _HAS_PINYIN and k["pyf"] and k["pyf"] in pyf:
+            add(k["category"], k["desc"], k["phrase"], "模糊拼音")
 
     result["detected"] = len(result["hits"]) > 0
     return result
