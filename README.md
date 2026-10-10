@@ -125,6 +125,7 @@ $env:HAA_API_KEY = "你的密钥"
 
 | 顺序 | 迭代 | 做了什么 | 代码 | 报告 | 关键结论（实测） |
 |---|---|---|---|---|---|
+| **★** | **确定性校验** | 能算的直接算，不问 AI | [`deterministic_check.py`](src/deterministic_check.py) | [reports/03](reports/03_验证层对照实验.md) | 覆盖 5 道题，抓住 4 个模型算错；**不需要第二个模型** |
 | **★** | **验证层（最大突破）** | 三段式流水线：自评 → 作答 → **另一厂商模型独立验证** | [`day5_pipeline.py`](src/day5_pipeline.py) | [**pipeline_report.md**](reports/03_验证层对照实验.md) | **自信但答错：7 → 1**，且过度拒答**没有增加** |
 | **★** | **Red Team 对抗测试** | 20 条主动攻击自己的用例 | [`redteam_cases.py`](src/redteam_cases.py) · [`redteam_run.py`](src/redteam_run.py) | [**redteam_report.md**](reports/05_对抗测试_RedTeam.md) | 被攻破率 **10%**；攻破者全是「**真实元素的合理拼接**」 |
 
@@ -474,6 +475,8 @@ src/                       全部代码
   tqa_subset.py            公开基准：挑选最有迷惑性的题
   tqa_manual.py            公开基准：人工核对表
   tqa_label.py             公开基准：交叉表
+  deterministic_check.py   ★ 确定性校验（不需要第二个模型，零成本）
+  compare_modes.py          ★ 四种配置对比（零成本重算）
   edge_tests.py            边界与异常输入测试
   demo.py                  ★ 5 分钟演示（--offline 零成本）
 

@@ -1,0 +1,94 @@
+{
+  "source": "pipeline_20261008_142513.json",
+  "modes": {
+    "A": {
+      "n": 54,
+      "accuracy": 0.8518518518518519,
+      "n_answer": 27,
+      "n_refuse": 27,
+      "confident_wrong": 7,
+      "confident_wrong_ids": [
+        "G1",
+        "G2",
+        "J2",
+        "J5",
+        "K4",
+        "L1",
+        "L6"
+      ],
+      "refusal_saved": 0,
+      "refusal_saved_ids": [],
+      "over_refusal": 1,
+      "over_refusal_ids": [
+        "I1"
+      ]
+    },
+    "B": {
+      "n": 54,
+      "accuracy": 0.9629629629629629,
+      "n_answer": 21,
+      "n_refuse": 33,
+      "confident_wrong": 1,
+      "confident_wrong_ids": [
+        "J2"
+      ],
+      "refusal_saved": 6,
+      "refusal_saved_ids": [
+        "G1",
+        "G2",
+        "J5",
+        "K4",
+        "L1",
+        "L6"
+      ],
+      "over_refusal": 1,
+      "over_refusal_ids": [
+        "I1"
+      ]
+    },
+    "C": {
+      "n": 54,
+      "accuracy": 0.9814814814814815,
+      "n_answer": 20,
+      "n_refuse": 34,
+      "confident_wrong": 0,
+      "confident_wrong_ids": [],
+      "refusal_saved": 6,
+      "refusal_saved_ids": [
+        "G1",
+        "G2",
+        "J5",
+        "K4",
+        "L1",
+        "L6"
+      ],
+      "over_refusal": 1,
+      "over_refusal_ids": [
+        "I1"
+      ]
+    },
+    "D": {
+      "n": 54,
+      "accuracy": 0.9259259259259259,
+      "n_answer": 23,
+      "n_refuse": 31,
+      "confident_wrong": 3,
+      "confident_wrong_ids": [
+        "J2",
+        "L1",
+        "L6"
+      ],
+      "refusal_saved": 4,
+      "refusal_saved_ids": [
+        "G1",
+        "G2",
+        "J5",
+        "K4"
+      ],
+      "over_refusal": 1,
+      "over_refusal_ids": [
+        "I1"
+      ]
+    }
+  }
+}

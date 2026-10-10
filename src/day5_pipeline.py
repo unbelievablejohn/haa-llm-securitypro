@@ -60,6 +60,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import day5
 import consistency_guard
+import deterministic_check
 from safety_eval import truth_present
 from safety_dataset import load as load_dataset, ANSWER
 
@@ -161,7 +162,12 @@ def run_one(item):
         "verifier_refused": False,
         "conflict_severity": "none",
         "conflict_detail": "",
-        # 两种配置下的最终决策
+        # 确定性校验（不需要第二个模型）
+        "deterministic_verdict": "not_applicable",
+        "deterministic_detail": "",
+        # 触发退回拒答的原因（可能多条）
+        "refuse_reason": "",
+        # 三种配置下的最终决策
         "decision_no_verify": None,
         "decision_verify": None,
     }
@@ -218,17 +224,52 @@ def run_one(item):
 
     rec["verifier_refused"] = looks_like_refusal(rec["answer_verifier"])
 
-    # 程序层比对两份答案（零 API 费用）
+    # ------------------------------------------------------------------
+    # 检查一：程序层实体比对（两份答案之间的可比实体）
+    # 零 API 费用。局限：只有两边都出现可比实体（数字/年份/标题/专名）
+    # 且不一致时才能发现。
+    # ------------------------------------------------------------------
     cross = consistency_guard.check_cross_entities(
         [rec["answer_main"], rec["answer_verifier"]], q)
     rec["conflict_severity"] = cross["severity"]
     rec["conflict_detail"] = consistency_guard.summarize(cross)
 
-    # 冲突 → 退回拒答；无冲突 → 输出主模型答案
+    # ------------------------------------------------------------------
+    # 检查二：确定性校验（**不需要第二个模型**）
+    # 问题里若含可计算的算式，就直接算出来核对，而不是问另一个模型。
+    # ------------------------------------------------------------------
+    det = deterministic_check.check(q, rec["answer_main"])
+    rec["deterministic_verdict"] = det["verdict"]
+    rec["deterministic_detail"] = deterministic_check.summarize(det)
+
+    # ------------------------------------------------------------------
+    # 决策：三种信号任一触发即退回拒答
+    #
+    # 这里补上了原先漏掉的一种情况 —— **验证模型拒答**。
+    #
+    # 原逻辑只判断「两模型结论冲突」。但实测 J2 暴露了漏洞：
+    #   主模型（智谱）置信 90，编造出一个人名；
+    #   验证模型（DeepSeek）明确拒答「无法确认这篇论文的第一作者」。
+    # 两份答案确实不同，但**拒答文本里没有任何可比实体**，于是实体比对
+    # 判定为「无冲突」→ 编造的人名被原样输出。
+    #
+    # 正确的理解是：**验证模型拒答，等于它没有支持主模型的答案**，
+    # 这本身就是一种分歧，而不是「无冲突」。
+    # ------------------------------------------------------------------
+    reasons = []
     if cross["severity"] == "conflict":
+        reasons.append("两模型结论冲突")
+    if rec["verifier_refused"]:
+        reasons.append("验证模型拒答：第二个意见未能支持该答案")
+    if det["verdict"] == "mismatch":
+        reasons.append("确定性校验不通过：算错了")
+
+    if reasons:
         rec["decision_verify"] = "refuse"
+        rec["refuse_reason"] = "；".join(reasons)
     else:
         rec["decision_verify"] = "answer"
+        rec["refuse_reason"] = ""
 
     rec["api_calls"] = total_calls()
     return rec
